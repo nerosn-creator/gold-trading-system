@@ -451,29 +451,57 @@ def api_reset_paper_account():
     paper_account["trades"] = []
     save_paper_account_state()
     return {"status": "SUCCESS", "message": "模擬交易帳戶已重置為 $100,000 USD"}
-    return {"status": "SUCCESS", "message": "模擬交易帳戶已重置為 $100,000 USD"}
 
-frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
-if os.path.exists(frontend_dir):
+# Multi-fallback detection for frontend directory on Cloud (Render/Railway/Docker) & Local
+possible_frontend_dirs = [
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend"),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend"),
+    os.path.join(os.getcwd(), "frontend"),
+    os.path.join(os.path.dirname(os.getcwd()), "frontend"),
+    "/opt/render/project/src/frontend"
+]
+
+frontend_dir = None
+for d in possible_frontend_dirs:
+    if os.path.exists(d) and os.path.exists(os.path.join(d, "index.html")):
+        frontend_dir = d
+        break
+
+if frontend_dir:
     app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
 @app.get("/favicon.ico")
 def serve_favicon():
-    return FileResponse(os.path.join(frontend_dir, "index.html"))
+    if frontend_dir:
+        return FileResponse(os.path.join(frontend_dir, "index.html"))
+    return {"status": "ok"}
 
 @app.get("/manifest.json")
 def serve_manifest():
-    manifest_path = os.path.join(frontend_dir, "manifest.json")
-    if os.path.exists(manifest_path):
-        return FileResponse(manifest_path, media_type="application/json")
+    if frontend_dir:
+        manifest_path = os.path.join(frontend_dir, "manifest.json")
+        if os.path.exists(manifest_path):
+            return FileResponse(manifest_path, media_type="application/json")
     return {"name": "Gold Trading System"}
 
 @app.get("/")
 def serve_index():
-    index_path = os.path.join(frontend_dir, "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    return {"message": "Gold Trading Signal API is running. Frontend static directory not found."}
+    if frontend_dir:
+        index_path = os.path.join(frontend_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+    return {"message": "Gold Trading Signal API is running."}
+
+@app.get("/{full_path:path}")
+def serve_catchall(full_path: str):
+    if frontend_dir and not full_path.startswith("api/"):
+        file_path = os.path.join(frontend_dir, full_path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        index_path = os.path.join(frontend_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+    return {"detail": "Not Found"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8084)
