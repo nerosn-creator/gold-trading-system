@@ -1,0 +1,12 @@
+{
+  "ema_weight": 30,
+  "macd_weight": 25,
+  "rsi_weight": 20,
+  "bb_weight": 15,
+  "stoch_weight": 10,
+  "adx_threshold": 20,
+  "generation": 4,
+  "win_rate_pct": 54.17,
+  "total_return_pct": 23.42,
+  "last_updated": "2026-08-13 08:42:23"
+}
