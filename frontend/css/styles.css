@@ -267,23 +267,51 @@ body {
 .firstbank-gold-badge {
     background: rgba(0, 117, 89, 0.22);
     border: 1px solid rgba(0, 230, 168, 0.35);
-    border-radius: 6px;
-    padding: 4px 12px;
+    border-radius: 8px;
+    padding: 6px 12px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 11px;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
 /* First Bank USD Spot Exchange Rate Panel */
 .firstbank-fx-badge {
     background: rgba(14, 165, 233, 0.18);
     border: 1px solid rgba(56, 189, 248, 0.35);
-    border-radius: 6px;
-    padding: 4px 12px;
+    border-radius: 8px;
+    padding: 6px 12px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.fb-badge-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+}
+
+.fb-rates-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.fb-rates-rows.inline {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
+.fb-rate-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 11px;
 }
 
@@ -1311,9 +1339,10 @@ input:checked + .slider:before {
     .firstbank-gold-badge,
     .firstbank-fx-badge {
         width: 100%;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        padding: 6px 12px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 8px 10px;
     }
 
     .hero-main-row {

@@ -28,7 +28,7 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪙</text></svg>">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/styles.css?v=4.0">
+    <link rel="stylesheet" href="/static/css/styles.css?v=5.0">
 
 </head>
 <body>
@@ -75,28 +75,42 @@
                 <!-- First Bank Gold Passbook Live Rates Panel (Top Aligned) -->
                 <div class="firstbank-badges-group">
                     <div class="firstbank-gold-badge">
-                        <i class="fa-solid fa-building-columns fb-icon"></i>
-                        <a href="https://mobile.firstbank.com.tw/c1/cheetah/zh/07/gold/rate?channel=X" target="_blank" class="fb-link">
-                            第一銀行黃金存摺 <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                        </a>
-                        <span class="fb-divider">|</span>
-                        <span class="fb-lbl">賣出:</span>
-                        <span id="fbGramSell" class="fb-val sell">NT$ 0 / 公克</span>
-                        <span class="fb-lbl">買進:</span>
-                        <span id="fbGramBuy" class="fb-val buy">NT$ 0 / 公克</span>
+                        <div class="fb-badge-title">
+                            <i class="fa-solid fa-building-columns fb-icon"></i>
+                            <a href="https://mobile.firstbank.com.tw/c1/cheetah/zh/07/gold/rate?channel=X" target="_blank" class="fb-link">
+                                第一銀行黃金存摺 <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+                        </div>
+                        <div class="fb-rates-rows">
+                            <div class="fb-rate-row">
+                                <span class="fb-lbl">賣出:</span>
+                                <span id="fbGramSell" class="fb-val sell">NT$ 0 / 公克</span>
+                            </div>
+                            <div class="fb-rate-row">
+                                <span class="fb-lbl">買進:</span>
+                                <span id="fbGramBuy" class="fb-val buy">NT$ 0 / 公克</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- First Bank USD Spot Exchange Rate Panel -->
                     <div class="firstbank-fx-badge">
-                        <i class="fa-solid fa-dollar-sign fb-icon"></i>
-                        <a href="https://www.firstbank.com.tw/sites/fcb/touch/1565688252532" target="_blank" class="fb-link">
-                            一銀美元即期匯率 <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                        </a>
-                        <span class="fb-divider">|</span>
-                        <span class="fb-lbl">即期賣出:</span>
-                        <span id="fbUsdSell" class="fb-val sell">32.55</span>
-                        <span class="fb-lbl">即期買入:</span>
-                        <span id="fbUsdBuy" class="fb-val buy">32.45</span>
+                        <div class="fb-badge-title">
+                            <i class="fa-solid fa-dollar-sign fb-icon"></i>
+                            <a href="https://www.firstbank.com.tw/sites/fcb/touch/1565688252532" target="_blank" class="fb-link">
+                                一銀美元即期匯率 <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+                        </div>
+                        <div class="fb-rates-rows inline">
+                            <div class="fb-rate-row">
+                                <span class="fb-lbl">即期賣出:</span>
+                                <span id="fbUsdSell" class="fb-val sell">32.55</span>
+                            </div>
+                            <div class="fb-rate-row">
+                                <span class="fb-lbl">即期買入:</span>
+                                <span id="fbUsdBuy" class="fb-val buy">32.45</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -481,7 +495,7 @@
     </div>
 
     <!-- Custom App Logic -->
-    <script src="/static/js/chart_manager.js?v=4.0"></script>
-    <script src="/static/js/app.js?v=4.0"></script>
+    <script src="/static/js/chart_manager.js?v=5.0"></script>
+    <script src="/static/js/app.js?v=5.0"></script>
 </body>
 </html>
