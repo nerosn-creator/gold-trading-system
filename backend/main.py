@@ -213,10 +213,10 @@ def api_get_spot_quote(symbol: str = "XAUUSD"):
     import pytz
     
     try:
-        tw_tz = pytz.timezone('Asia/Taipei')
-        now_dt = datetime.now(tw_tz)
+        kh_tz = pytz.timezone('Asia/Phnom_Penh')
+        now_dt = datetime.now(kh_tz)
     except Exception:
-        now_dt = datetime.utcnow() + timedelta(hours=8)
+        now_dt = datetime.utcnow() + timedelta(hours=7)
 
     date_str = now_dt.strftime("%Y/%m/%d")
     time_str = now_dt.strftime("%H:%M:%S")
@@ -228,9 +228,9 @@ def api_get_spot_quote(symbol: str = "XAUUSD"):
         if hasattr(ts_val, 'strftime'):
             try:
                 if getattr(ts_val, 'tzinfo', None) is None:
-                    ts_dt = pytz.utc.localize(ts_val).astimezone(pytz.timezone('Asia/Taipei'))
+                    ts_dt = pytz.utc.localize(ts_val).astimezone(pytz.timezone('Asia/Phnom_Penh'))
                 else:
-                    ts_dt = ts_val.astimezone(pytz.timezone('Asia/Taipei'))
+                    ts_dt = ts_val.astimezone(pytz.timezone('Asia/Phnom_Penh'))
                 ts = ts_dt.strftime("%H:%M")
             except Exception:
                 ts = ts_val.strftime("%H:%M")
