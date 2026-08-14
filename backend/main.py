@@ -209,13 +209,33 @@ def api_get_spot_quote(symbol: str = "XAUUSD"):
     buy_price = round(last_price, 2)
     sell_price = round(last_price + spread, 2)
     
-    now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-    date_str, time_str = now_str.split(" ")
+    from datetime import datetime, timedelta
+    import pytz
+    
+    try:
+        tw_tz = pytz.timezone('Asia/Taipei')
+        now_dt = datetime.now(tw_tz)
+    except Exception:
+        now_dt = datetime.utcnow() + timedelta(hours=8)
+
+    date_str = now_dt.strftime("%Y/%m/%d")
+    time_str = now_dt.strftime("%H:%M:%S")
     
     # Intraday trend curve points for chart rendering
     trend_points = []
     for _, row in df_1m.tail(60).iterrows():
-        ts = row['timestamp'].strftime("%H:%M") if hasattr(row['timestamp'], 'strftime') else str(row['timestamp'])
+        ts_val = row['timestamp']
+        if hasattr(ts_val, 'strftime'):
+            try:
+                if getattr(ts_val, 'tzinfo', None) is None:
+                    ts_dt = pytz.utc.localize(ts_val).astimezone(pytz.timezone('Asia/Taipei'))
+                else:
+                    ts_dt = ts_val.astimezone(pytz.timezone('Asia/Taipei'))
+                ts = ts_dt.strftime("%H:%M")
+            except Exception:
+                ts = ts_val.strftime("%H:%M")
+        else:
+            ts = str(ts_val)
         trend_points.append({
             "time": ts,
             "price": round(float(row['close']), 2)
