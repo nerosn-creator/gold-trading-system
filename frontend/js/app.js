@@ -177,6 +177,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const sqHigh = document.getElementById("sqHigh");
             const sqLow = document.getElementById("sqLow");
 
+            const sqTwdOz = document.getElementById("sqTwdOz");
+            const sqTwdChien = document.getElementById("sqTwdChien");
+            const sqTwdGram = document.getElementById("sqTwdGram");
+            const sqFutPrice = document.getElementById("sqFutPrice");
+            const sqFutSpread = document.getElementById("sqFutSpread");
+
             if (sqDate) sqDate.textContent = data.date || "----/--/--";
             if (sqTime) sqTime.textContent = data.time || "--:--:--";
             if (sqBuy) sqBuy.textContent = `$${data.buy_price}`;
@@ -195,6 +201,15 @@ document.addEventListener("DOMContentLoaded", () => {
             if (sqOpen) sqOpen.textContent = `$${data.open}`;
             if (sqHigh) sqHigh.textContent = `$${data.high}`;
             if (sqLow) sqLow.textContent = `$${data.low}`;
+
+            if (sqTwdOz && data.twd_per_oz) sqTwdOz.textContent = `NT$ ${data.twd_per_oz}`;
+            if (sqTwdChien && data.twd_per_chien) sqTwdChien.textContent = `NT$ ${data.twd_per_chien}`;
+            if (sqTwdGram && data.twd_per_gram) sqTwdGram.textContent = `NT$ ${data.twd_per_gram}`;
+            if (sqFutPrice && data.futures_gc1) sqFutPrice.textContent = `$${data.futures_gc1}`;
+            if (sqFutSpread && data.spread_futures) {
+                sqFutSpread.textContent = `${data.spread_futures}`;
+                sqFutSpread.className = `tm-val ${parseFloat(data.spread_futures) >= 0 ? "bullish" : "bearish"}`;
+            }
 
             if (data.trend_points && Array.isArray(data.trend_points)) {
                 renderSpotTrendChart(data.trend_points);

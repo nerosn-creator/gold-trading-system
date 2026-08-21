@@ -180,29 +180,29 @@
 
                 <div class="panel-header fb-panel-header" style="margin-top: 4px;">
                     <div class="panel-title">
-                        <i class="fa-solid fa-building-columns"></i>
-                        <span>第一銀行國際黃金現貨即時行情 (即時更新)</span>
+                        <i class="fa-solid fa-coins gold-icon"></i>
+                        <span>TRUNEY 國際黃金現貨即時走勢與即時報價 (XAU/USD)</span>
                     </div>
                     <div class="fb-header-actions">
-                        <button id="toggleQuoteViewBtn" class="btn-xs fb-mode-btn" title="切換原生手機版與原廠圖表">
-                            <i class="fa-solid fa-mobile-screen-button"></i> <span id="toggleQuoteModeText">切換原廠網頁</span>
+                        <button id="toggleQuoteViewBtn" class="btn-xs fb-mode-btn" title="切換原生面板與 TRUNEY 原廠走勢">
+                            <i class="fa-solid fa-mobile-screen-button"></i> <span id="toggleQuoteModeText">切換 TRUNEY 網頁</span>
                         </button>
-                        <a href="https://ezwatch.money-link.com.tw/FirstBank/index.jsp" target="_blank" rel="noopener noreferrer" class="fb-external-btn" title="在新視窗開啟第一銀行即時行情行情頁">
-                            <i class="fa-solid fa-arrow-up-right-from-square"></i> 原始網頁
+                        <a href="https://www.truney.com/gold-chart?srsltid=AfmBOorf8Jl0Wpitl7_KDcP1Bepb7b5haOWoD5l6rEjZ8KUhR2KsYxj0" target="_blank" rel="noopener noreferrer" class="fb-external-btn" title="在新視窗開啟 TRUNEY 原廠黃金即時走勢頁面">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> TRUNEY 原廠走勢圖
                         </a>
                     </div>
                 </div>
 
-                <!-- 1. Native Mobile-Responsive Market Quote Board (Matches Screenshot) -->
+                <!-- 1. Native Mobile-Responsive Market Quote Board (Matches TRUNEY & Live Spot) -->
                 <div id="nativeQuoteBoard" class="native-quote-card">
                     <div class="nq-header">
-                        <span class="nq-title"><i class="fa-solid fa-chart-line"></i> 國際黃金現貨市場行情</span>
+                        <span class="nq-title"><i class="fa-solid fa-chart-line"></i> TRUNEY / 國際黃金現貨市場行情 (24H 即時撮合)</span>
                         <span class="nq-unit">單位：美元/盎司</span>
                     </div>
                     <div class="nq-grid">
                         <div class="nq-item">
                             <span class="nq-lbl">名稱</span>
-                            <span class="nq-val bold">黃金現貨</span>
+                            <span class="nq-val bold">黃金現貨 (XAUUSD)</span>
                         </div>
                         <div class="nq-item">
                             <span class="nq-lbl">日期</span>
@@ -213,43 +213,67 @@
                             <span id="sqTime" class="nq-val">--:--:--</span>
                         </div>
                         <div class="nq-item">
-                            <span class="nq-lbl">買進價</span>
+                            <span class="nq-lbl">買進價 (Bid)</span>
                             <span id="sqBuy" class="nq-val bullish">$0.00</span>
                         </div>
                         <div class="nq-item">
-                            <span class="nq-lbl">賣出價</span>
+                            <span class="nq-lbl">賣出價 (Ask)</span>
                             <span id="sqSell" class="nq-val bullish">$0.00</span>
                         </div>
                         <div class="nq-item">
-                            <span class="nq-lbl">成交價</span>
+                            <span class="nq-lbl">最新成交價</span>
                             <span id="sqLast" class="nq-val bullish">$0.00</span>
                         </div>
                         <div class="nq-item">
-                            <span class="nq-lbl">漲跌</span>
+                            <span class="nq-lbl">漲跌幅</span>
                             <span id="sqChange" class="nq-val neutral">0.00 (0.00%)</span>
                         </div>
                         <div class="nq-item">
-                            <span class="nq-lbl">昨收</span>
+                            <span class="nq-lbl">昨收 (Prev)</span>
                             <span id="sqPrevClose" class="nq-val">$0.00</span>
                         </div>
                         <div class="nq-item">
-                            <span class="nq-lbl">開盤</span>
+                            <span class="nq-lbl">今日開盤</span>
                             <span id="sqOpen" class="nq-val">$0.00</span>
                         </div>
                         <div class="nq-item">
-                            <span class="nq-lbl">最高</span>
+                            <span class="nq-lbl">今日最高</span>
                             <span id="sqHigh" class="nq-val bullish">$0.00</span>
                         </div>
                         <div class="nq-item">
-                            <span class="nq-lbl">最低</span>
+                            <span class="nq-lbl">今日最低</span>
                             <span id="sqLow" class="nq-val bearish">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Market / Currency Conversion Row (Matches TRUNEY Board) -->
+                    <div class="truney-multi-grid">
+                        <div class="tm-item">
+                            <span class="tm-lbl"><i class="fa-solid fa-calculator"></i> XAUUSD × USD/TWD (盎司/台幣)</span>
+                            <span id="sqTwdOz" class="tm-val gold">NT$ 0</span>
+                        </div>
+                        <div class="tm-item">
+                            <span class="tm-lbl"><i class="fa-solid fa-weight-scale"></i> 換算台錢 (台錢/台幣)</span>
+                            <span id="sqTwdChien" class="tm-val gold">NT$ 0</span>
+                        </div>
+                        <div class="tm-item">
+                            <span class="tm-lbl"><i class="fa-solid fa-scale-balanced"></i> 換算公克 (公克/台幣)</span>
+                            <span id="sqTwdGram" class="tm-val gold">NT$ 0</span>
+                        </div>
+                        <div class="tm-item">
+                            <span class="tm-lbl"><i class="fa-solid fa-bolt"></i> COMEX 期貨 (GC1! 近一期)</span>
+                            <span id="sqFutPrice" class="tm-val">$0.00</span>
+                        </div>
+                        <div class="tm-item">
+                            <span class="tm-lbl"><i class="fa-solid fa-arrow-right-arrow-left"></i> 期現價差 (期貨 - 現貨)</span>
+                            <span id="sqFutSpread" class="tm-val">+$0.00</span>
                         </div>
                     </div>
 
                     <!-- Native Intraday Gold Price Sparkline / Trend Line Curve Chart -->
                     <div class="nq-chart-box">
                         <div class="nq-chart-header">
-                            <span><i class="fa-solid fa-chart-area"></i> 今日國際黃金分時即時走勢曲線圖 (Intraday Live Trend)</span>
+                            <span><i class="fa-solid fa-chart-area"></i> 今日國際黃金現貨分時即時走勢曲線 (TRUNEY / Live Spot Trend)</span>
                             <span id="sqChartRange" class="nq-chart-tag">即時動態</span>
                         </div>
                         <div class="nq-canvas-wrapper">
@@ -258,9 +282,18 @@
                     </div>
                 </div>
 
-                <!-- 2. Original Iframe View Wrapper (Toggleable) -->
+                <!-- 2. TRUNEY Embedded View Wrapper (Toggleable) -->
                 <div id="iframeQuoteWrapper" class="firstbank-iframe-wrapper" style="display: none;">
-                    <iframe src="https://ezwatch.money-link.com.tw/FirstBank/index.jsp" class="firstbank-iframe" title="第一銀行國際黃金現貨即時行情"></iframe>
+                    <div class="truney-embed-fallback">
+                        <div class="tef-header">
+                            <i class="fa-solid fa-globe"></i>
+                            <span>TRUNEY 貴金屬交易中心 - 黃金價格走勢與即時行情</span>
+                        </div>
+                        <p class="tef-desc">TRUNEY 官方即時報價已同步至上方即時看板。您亦可直接前往 TRUNEY 官方走勢圖瀏覽完整技術圖表：</p>
+                        <a href="https://www.truney.com/gold-chart?srsltid=AfmBOorf8Jl0Wpitl7_KDcP1Bepb7b5haOWoD5l6rEjZ8KUhR2KsYxj0" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:8px; margin-top:10px;">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> 開啟 TRUNEY 官方黃金走勢圖 (原廠頁面)
+                        </a>
+                    </div>
                 </div>
             </section>
 
