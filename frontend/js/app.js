@@ -143,12 +143,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const fbUsdBuy = document.getElementById("fbUsdBuy");
 
             if (fbGramSell) {
-                const ozSell = Math.round(data.gram_sell * 31.1034768);
-                fbGramSell.textContent = `NT$ ${data.gram_sell.toLocaleString()} / 公克 (約 NT$ ${ozSell.toLocaleString()} / 盎司)`;
+                const usdOzSell = data.usd_gold_sell ? Number(data.usd_gold_sell).toFixed(2) : "0.00";
+                fbGramSell.textContent = `NT$ ${data.gram_sell.toLocaleString()} / 公克 (1盎司: $${usdOzSell} 美元)`;
             }
             if (fbGramBuy) {
-                const ozBuy = Math.round(data.gram_buy * 31.1034768);
-                fbGramBuy.textContent = `NT$ ${data.gram_buy.toLocaleString()} / 公克 (約 NT$ ${ozBuy.toLocaleString()} / 盎司)`;
+                const usdOzBuy = data.usd_gold_buy ? Number(data.usd_gold_buy).toFixed(2) : "0.00";
+                fbGramBuy.textContent = `NT$ ${data.gram_buy.toLocaleString()} / 公克 (1盎司: $${usdOzBuy} 美元)`;
             }
 
             if (fbUsdSell && data.usd_spot_sell) fbUsdSell.textContent = data.usd_spot_sell.toFixed(3);

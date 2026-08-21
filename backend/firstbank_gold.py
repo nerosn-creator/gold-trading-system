@@ -129,6 +129,8 @@ def fetch_firstbank_gold_rates(spot_price_usd: float = 4450.0) -> Dict[str, Any]
         "chien_sell": int(chien_sell),
         "usd_spot_buy": round(usd_spot_buy, 3),
         "usd_spot_sell": round(usd_spot_sell, 3),
+        "usd_gold_buy": round(spot_price_usd * 0.992, 2),
+        "usd_gold_sell": round(spot_price_usd * 1.008, 2),
         "spread": int(gram_sell - gram_buy),
         "last_updated": "離線備用換算"
     }
