@@ -5,7 +5,10 @@ import pandas as pd
 from backtester import run_backtest
 from indicator_engine import calculate_indicators
 
+import tempfile
+
 WEIGHTS_FILE = os.path.join(os.path.dirname(__file__), "evolved_weights.json")
+TMP_WEIGHTS_FILE = os.path.join(tempfile.gettempdir(), "evolved_weights.json")
 
 DEFAULT_WEIGHTS = {
     "ema_weight": 30,
@@ -21,17 +24,29 @@ DEFAULT_WEIGHTS = {
 }
 
 def load_evolved_weights():
-    if os.path.exists(WEIGHTS_FILE):
-        try:
-            with open(WEIGHTS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
+    for target in [TMP_WEIGHTS_FILE, WEIGHTS_FILE]:
+        if os.path.exists(target):
+            try:
+                with open(target, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
     return DEFAULT_WEIGHTS.copy()
 
 def save_evolved_weights(weights):
-    with open(WEIGHTS_FILE, "w", encoding="utf-8") as f:
-        json.dump(weights, f, ensure_ascii=False, indent=2)
+    saved = False
+    try:
+        with open(WEIGHTS_FILE, "w", encoding="utf-8") as f:
+            json.dump(weights, f, ensure_ascii=False, indent=2)
+        saved = True
+    except Exception:
+        pass
+    if not saved:
+        try:
+            with open(TMP_WEIGHTS_FILE, "w", encoding="utf-8") as f:
+                json.dump(weights, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
 
 def run_parameter_simulation(df, weights):
     """

@@ -348,7 +348,10 @@ def api_get_events():
 
 # Paper Trading State
 import json
+import tempfile
+
 PAPER_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "paper_account.json")
+TMP_PAPER_FILE = os.path.join(tempfile.gettempdir(), "paper_account.json")
 
 def load_paper_account_state():
     default_state = {
@@ -358,20 +361,29 @@ def load_paper_account_state():
         "position": None,
         "trades": []
     }
-    if os.path.exists(PAPER_FILE):
-        try:
-            with open(PAPER_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print("Error loading paper_account.json:", e)
+    for target in [TMP_PAPER_FILE, PAPER_FILE]:
+        if os.path.exists(target):
+            try:
+                with open(target, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                pass
     return default_state
 
 def save_paper_account_state():
+    saved = False
     try:
         with open(PAPER_FILE, "w", encoding="utf-8") as f:
             json.dump(paper_account, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print("Error saving paper_account.json:", e)
+        saved = True
+    except Exception:
+        pass
+    if not saved:
+        try:
+            with open(TMP_PAPER_FILE, "w", encoding="utf-8") as f:
+                json.dump(paper_account, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
 
 paper_account = load_paper_account_state()
 

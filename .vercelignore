@@ -1,0 +1,12 @@
+*.exe
+*.log
+tunnel.log
+__pycache__/
+*.pyc
+.git/
+.gitignore
+start_system.bat
+停止系統.bat
+啟動黃金交易系統.bat
+後台啟動_無黑框.vbs
+update_github.bat
