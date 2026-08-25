@@ -511,12 +511,14 @@ def api_reset_paper_account():
     save_paper_account_state()
     return {"status": "SUCCESS", "message": "模擬交易帳戶已重置為 $100,000 USD"}
 
-# Multi-fallback detection for frontend directory on Cloud (Render/Railway/Docker) & Local
+# Multi-fallback detection for frontend directory on Cloud (Vercel/Render/Railway/Docker) & Local
 possible_frontend_dirs = [
     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend"),
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend"),
     os.path.join(os.getcwd(), "frontend"),
     os.path.join(os.path.dirname(os.getcwd()), "frontend"),
+    "/var/task/frontend",
+    "/var/task/backend/frontend",
     "/opt/render/project/src/frontend"
 ]
 

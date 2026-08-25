@@ -1,31 +1,14 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/index.py",
-      "use": "@vercel/python"
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "frontend/**",
+      "maxDuration": 30
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/static/(.*)",
-      "dest": "/frontend/$1"
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "/frontend/manifest.json"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/frontend/index.html"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "source": "/(.*)",
+      "destination": "/api/index.py"
     }
   ]
 }

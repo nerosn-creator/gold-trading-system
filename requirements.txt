@@ -5,3 +5,4 @@ pandas>=2.0.0
 numpy>=1.24.0
 requests>=2.30.0
 pytz>=2023.3
+aiofiles>=23.0.0
