@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黃金自動化技術指標買賣訊號系統 | Gold Quantitative Trading Signal System</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪙</text></svg>">
+
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- TradingView Lightweight Charts (Local) -->
+    <script src="/static/js/lib/lightweight-charts.js"></script>
+
+
+    <!-- PWA Mobile App Support -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="黃金訊號">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪙</text></svg>">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css?v=7.0">
+
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="navbar">
+            <div class="brand">
+                <i class="fa-solid fa-coins gold-icon"></i>
+                <div class="brand-text">
+                    <h1>GOLD SIGNAL QUANT</h1>
+                    <span class="subtext">黃金走勢自動化技術指標分析與訊號引擎</span>
+                </div>
+            </div>
+            
+            <div class="navbar-right">
+                <div class="market-ticker">
+                    <span class="ticker-label">XAU/USD (現貨黃金)</span>
+                    <span id="tickerPrice" class="ticker-price">$0.00</span>
+                    <span id="tickerChange" class="ticker-change neutral">+0.00 (+0.00%)</span>
+                </div>
+                
+                <div class="timeframe-selector">
+                    <button class="tf-btn" data-tf="5m">5m</button>
+                    <button class="tf-btn" data-tf="15m">15m</button>
+                    <button class="tf-btn active" data-tf="1h">1H</button>
+                    <button class="tf-btn" data-tf="4h">4H</button>
+                    <button class="tf-btn" data-tf="1d">1D</button>
+                </div>
+
+                <button id="refreshBtn" class="btn-refresh" title="手動更新數據">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Live Daily Gold Price Hero Banner -->
+        <div class="today-gold-hero">
+            <div class="hero-header-row">
+                <div class="hero-price-label">
+                    <i class="fa-solid fa-coins gold-icon"></i>
+                    <span>今日國際黃金現貨 (XAU/USD)</span>
+                </div>
+
+                <!-- First Bank Gold Passbook Live Rates Panel (Top Aligned) -->
+                <div class="firstbank-badges-group">
+                    <div class="firstbank-gold-badge">
+                        <div class="fb-badge-title">
+                            <i class="fa-solid fa-building-columns fb-icon"></i>
+                            <a href="https://mobile.firstbank.com.tw/c1/cheetah/zh/07/gold/rate?channel=X" target="_blank" class="fb-link">
+                                第一銀行黃金存摺 <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+                        </div>
+                        <div class="fb-rates-rows">
+                            <div class="fb-rate-row">
+                                <span class="fb-lbl">賣出:</span>
+                                <span id="fbGramSell" class="fb-val sell">NT$ 0 / 公克</span>
+                            </div>
+                            <div class="fb-rate-row">
+                                <span class="fb-lbl">買進:</span>
+                                <span id="fbGramBuy" class="fb-val buy">NT$ 0 / 公克</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- First Bank USD Spot Exchange Rate Panel -->
+                    <div class="firstbank-fx-badge">
+                        <div class="fb-badge-title">
+                            <i class="fa-solid fa-dollar-sign fb-icon"></i>
+                            <a href="https://www.firstbank.com.tw/sites/fcb/touch/1565688252532" target="_blank" class="fb-link">
+                                一銀美元即期匯率 <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+                        </div>
+                        <div class="fb-rates-rows inline">
+                            <div class="fb-rate-row">
+                                <span class="fb-lbl">即期賣出:</span>
+                                <span id="fbUsdSell" class="fb-val sell">32.55</span>
+                            </div>
+                            <div class="fb-rate-row">
+                                <span class="fb-lbl">即期買入:</span>
+                                <span id="fbUsdBuy" class="fb-val buy">32.45</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="hero-main-row">
+                <div class="hero-price-flex">
+                    <span id="heroSpotPrice" class="hero-main-price">$0.00</span>
+                    <span id="heroPriceChange" class="hero-change-badge neutral">+0.00 (+0.00%)</span>
+                </div>
+
+                <div class="hero-ohlc-grid">
+                    <div class="ohlc-item">
+                        <span class="o-lbl">今日開盤 (Open)</span>
+                        <span id="heroOpen" class="o-val">$0.00</span>
+                    </div>
+                    <div class="ohlc-item">
+                        <span class="o-lbl">今日最高 (High)</span>
+                        <span id="heroHigh" class="o-val bullish">$0.00</span>
+                    </div>
+                    <div class="ohlc-item">
+                        <span class="o-lbl">今日最低 (Low)</span>
+                        <span id="heroLow" class="o-val bearish">$0.00</span>
+                    </div>
+                    <div class="ohlc-item">
+                        <span class="o-lbl">當日波幅 (Range)</span>
+                        <span id="heroRange" class="o-val">$0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Content -->
+        <main class="dashboard-grid">
+
+
+            
+            <!-- Left Panel: Chart & Technical Overlay -->
+            <section class="panel chart-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fa-solid fa-chart-candlestick"></i>
+                        <span>黃金 K 線技術指標與買賣標記圖表</span>
+                    </div>
+                    <div class="chart-controls">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggleEMA" checked>
+                            <span class="slider"></span>
+                            <span class="toggle-label">EMA (9,21,50)</span>
+                        </label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggleBB" checked>
+                            <span class="slider"></span>
+                            <span class="toggle-label">布林通道 (20,2)</span>
+                        </label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggleSignals" checked>
+                            <span class="slider"></span>
+                            <span class="toggle-label">訊號標記</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="chart-wrapper">
+                    <div id="candleChartContainer" class="chart-box"></div>
+                </div>
+
+                <div class="panel-header fb-panel-header" style="margin-top: 4px;">
+                    <div class="panel-title">
+                        <i class="fa-solid fa-coins gold-icon"></i>
+                        <span>TRUNEY 國際黃金現貨即時走勢與即時報價 (XAU/USD)</span>
+                    </div>
+                    <div class="fb-header-actions">
+                        <button id="toggleQuoteViewBtn" class="btn-xs fb-mode-btn" title="切換原生面板與 TRUNEY 原廠走勢">
+                            <i class="fa-solid fa-mobile-screen-button"></i> <span id="toggleQuoteModeText">切換 TRUNEY 網頁</span>
+                        </button>
+                        <a href="https://www.truney.com/gold-chart?srsltid=AfmBOorf8Jl0Wpitl7_KDcP1Bepb7b5haOWoD5l6rEjZ8KUhR2KsYxj0" target="_blank" rel="noopener noreferrer" class="fb-external-btn" title="在新視窗開啟 TRUNEY 原廠黃金即時走勢頁面">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> TRUNEY 原廠走勢圖
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 1. Native Mobile-Responsive Market Quote Board (Matches TRUNEY & Live Spot) -->
+                <div id="nativeQuoteBoard" class="native-quote-card">
+                    <div class="nq-header">
+                        <span class="nq-title"><i class="fa-solid fa-chart-line"></i> TRUNEY / 國際黃金現貨市場行情 (24H 即時撮合)</span>
+                        <span class="nq-unit">單位：美元/盎司</span>
+                    </div>
+                    <div class="nq-grid">
+                        <div class="nq-item">
+                            <span class="nq-lbl">名稱</span>
+                            <span class="nq-val bold">黃金現貨 (XAUUSD)</span>
+                        </div>
+                        <div class="nq-item">
+                            <span class="nq-lbl">日期</span>
+                            <span id="sqDate" class="nq-val">----/--/--</span>
+                        </div>
+                        <div class="nq-item">
+                            <span class="nq-lbl">時間</span>
+                            <span id="sqTime" class="nq-val">--:--:--</span>
+                        </div>
+                        <div class="nq-item">
+                            <span class="nq-lbl">買進價 (Bid)</span>
+                            <span id="sqBuy" class="nq-val bullish">$0.00</span>
+                        </div>
+                        <div class="nq-item">
+                            <span class="nq-lbl">賣出價 (Ask)</span>
+                            <span id="sqSell" class="nq-val bullish">$0.00</span>
+                        </div>
+                        <div class="nq-item">
+                            <span class="nq-lbl">最新成交價</span>
+                            <span id="sqLast" class="nq-val bullish">$0.00</span>
+                        </div>
+                        <div class="nq-item">
+                            <span class="nq-lbl">漲跌幅</span>
+                            <span id="sqChange" class="nq-val neutral">0.00 (0.00%)</span>
+                        </div>
+                        <div class="nq-item">
+                            <span class="nq-lbl">昨收 (Prev)</span>
+                            <span id="sqPrevClose" class="nq-val">$0.00</span>
+                        </div>
+                        <div class="nq-item">
+                            <span class="nq-lbl">今日開盤</span>
+                            <span id="sqOpen" class="nq-val">$0.00</span>
+                        </div>
+                        <div class="nq-item">
+                            <span class="nq-lbl">今日最高</span>
+                            <span id="sqHigh" class="nq-val bullish">$0.00</span>
+                        </div>
+                        <div class="nq-item">
+                            <span class="nq-lbl">今日最低</span>
+                            <span id="sqLow" class="nq-val bearish">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Market / Currency Conversion Row (Matches TRUNEY Board) -->
+                    <div class="truney-multi-grid">
+                        <div class="tm-item">
+                            <span class="tm-lbl"><i class="fa-solid fa-calculator"></i> XAUUSD × USD/TWD (盎司/台幣)</span>
+                            <span id="sqTwdOz" class="tm-val gold">NT$ 0</span>
+                        </div>
+                        <div class="tm-item">
+                            <span class="tm-lbl"><i class="fa-solid fa-weight-scale"></i> 換算台錢 (台錢/台幣)</span>
+                            <span id="sqTwdChien" class="tm-val gold">NT$ 0</span>
+                        </div>
+                        <div class="tm-item">
+                            <span class="tm-lbl"><i class="fa-solid fa-scale-balanced"></i> 換算公克 (公克/台幣)</span>
+                            <span id="sqTwdGram" class="tm-val gold">NT$ 0</span>
+                        </div>
+                        <div class="tm-item">
+                            <span class="tm-lbl"><i class="fa-solid fa-bolt"></i> COMEX 期貨 (GC1! 近一期)</span>
+                            <span id="sqFutPrice" class="tm-val">$0.00</span>
+                        </div>
+                        <div class="tm-item">
+                            <span class="tm-lbl"><i class="fa-solid fa-arrow-right-arrow-left"></i> 期現價差 (期貨 - 現貨)</span>
+                            <span id="sqFutSpread" class="tm-val">+$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Native Intraday Gold Price Sparkline / Trend Line Curve Chart -->
+                    <div class="nq-chart-box">
+                        <div class="nq-chart-header">
+                            <span><i class="fa-solid fa-chart-area"></i> 今日國際黃金現貨分時即時走勢曲線 (TRUNEY / Live Spot Trend)</span>
+                            <span id="sqChartRange" class="nq-chart-tag">即時動態</span>
+                        </div>
+                        <div class="nq-canvas-wrapper">
+                            <canvas id="spotTrendCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. TRUNEY Embedded View Wrapper (Toggleable) -->
+                <div id="iframeQuoteWrapper" class="firstbank-iframe-wrapper" style="display: none;">
+                    <div class="truney-embed-fallback">
+                        <div class="tef-header">
+                            <i class="fa-solid fa-globe"></i>
+                            <span>TRUNEY 貴金屬交易中心 - 黃金價格走勢與即時行情</span>
+                        </div>
+                        <p class="tef-desc">TRUNEY 官方即時報價已同步至上方即時看板。您亦可直接前往 TRUNEY 官方走勢圖瀏覽完整技術圖表：</p>
+                        <a href="https://www.truney.com/gold-chart?srsltid=AfmBOorf8Jl0Wpitl7_KDcP1Bepb7b5haOWoD5l6rEjZ8KUhR2KsYxj0" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:8px; margin-top:10px;">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> 開啟 TRUNEY 官方黃金走勢圖 (原廠頁面)
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Signal Compass & Live Analytics -->
+            <aside class="panel side-panel">
+                
+                <!-- Main Signal Compass Card -->
+                <div class="card signal-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-compass"></i> 即時訊號羅盤 (Signal Compass)</h3>
+                        <span id="signalTime" class="signal-timestamp">更新時間 --:--:--</span>
+                    </div>
+                    
+                    <div class="signal-badge-container">
+                        <div id="signalBadge" class="signal-badge neutral">NEUTRAL</div>
+                        <div class="signal-score-meter">
+                            <span class="score-label">訊號評分分值:</span>
+                            <span id="signalScore" class="score-value">0</span>
+                        </div>
+                    </div>
+
+                    <div class="tp-sl-box">
+                        <div class="tp-item">
+                            <span class="tp-label">建議止盈 (Take Profit)</span>
+                            <span id="tpPrice" class="tp-value">$0.00</span>
+                        </div>
+                        <div class="sl-item">
+                            <span class="sl-label">建議止損 (Stop Loss)</span>
+                            <span id="slPrice" class="sl-value">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3~6 Month Long-Term Macro Investment Card -->
+                <div class="card macro-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-landmark"></i> 3~6個月中長線投資戰略提示</h3>
+                        <span class="macro-badge-sm">宏觀投資指引</span>
+                    </div>
+                    
+                    <div class="macro-rating-box">
+                        <div id="macroRatingText" class="macro-rating-text">載入中長線戰略中...</div>
+                    </div>
+
+                    <div class="macro-details-grid">
+                        <div class="m-det-item">
+                            <span class="m-lbl">建議分批買進區間</span>
+                            <span id="macroAccumulateZone" class="m-val-lg">$0.00 ~ $0.00</span>
+                        </div>
+                        <div class="m-det-item">
+                            <span class="m-lbl">3個月展望目標</span>
+                            <span id="macroTarget3M" class="m-val-lg gold">$0.00</span>
+                        </div>
+                        <div class="m-det-item">
+                            <span class="m-lbl">6個月展望目標</span>
+                            <span id="macroTarget6M" class="m-val-lg gold">$0.00</span>
+                        </div>
+                        <div class="m-det-item">
+                            <span class="m-lbl">200日牛熊均線</span>
+                            <span id="macroSMA200" class="m-val-lg">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Macro Technical Proofs -->
+                    <div id="macroProofsBox" class="macro-proofs-box">
+                        <span class="m-proof-title"><i class="fa-solid fa-chart-line"></i> 嚴謹量化與技術分析依據:</span>
+                        <ul id="macroProofsList" class="macro-proofs-list">
+                            <li>載入中...</li>
+                        </ul>
+                    </div>
+                </div>
+
+
+                <!-- AI Strategy Self-Evolution Card -->
+                <div class="card ai-evolution-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-dna"></i> AI 策略自動進化與動態勝率</h3>
+                        <span id="aiGenBadge" class="ai-badge-sm">Gen 1 自適應優化</span>
+                    </div>
+
+                    <div class="ai-winrate-hero">
+                        <div class="ai-win-box">
+                            <span class="a-lbl">動態進化最佳勝率 (Win Rate)</span>
+                            <span id="aiEvolvedWinRate" class="a-val-hero">54.17%</span>
+                        </div>
+                        <button id="runOptimizeBtn" class="btn btn-ai-evolve">
+                            <i class="fa-solid fa-bolt"></i> 啟動 AI 權重進化
+                        </button>
+                    </div>
+
+                    <div class="ai-weights-grid">
+                        <div class="a-w-item">
+                            <span class="a-w-lbl">EMA 均線權重</span>
+                            <span id="wEMA" class="a-w-val">30%</span>
+                        </div>
+                        <div class="a-w-item">
+                            <span class="a-w-lbl">MACD 權重</span>
+                            <span id="wMACD" class="a-w-val">25%</span>
+                        </div>
+                        <div class="a-w-item">
+                            <span class="a-w-lbl">RSI 權重</span>
+                            <span id="wRSI" class="a-w-val">20%</span>
+                        </div>
+                        <div class="a-w-item">
+                            <span class="a-w-lbl">ADX 趨勢門檻</span>
+                            <span id="wADX" class="a-w-val">20</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daily Major Gold Events Card -->
+
+                <div class="card events-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-calendar-days"></i> 每日黃金重大財經事件與新聞</h3>
+                        <span id="eventSentimentTag" class="event-badge-sm">🔥 強烈避險多頭</span>
+                    </div>
+
+                    <!-- Macro Drivers List -->
+                    <div class="macro-drivers-box">
+                        <span class="m-driver-title"><i class="fa-solid fa-fire"></i> 今日市場核心焦點:</span>
+                        <ul id="driversList" class="drivers-list">
+                            <li>載入中...</li>
+                        </ul>
+                    </div>
+
+                    <!-- Daily Events Timeline -->
+                    <div class="events-timeline-container">
+                        <ul id="eventsList" class="events-timeline-list">
+                            <li>載入今日財經日曆中...</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Paper Trading Sandbox Card -->
+
+
+                <div class="card paper-trading-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-gamepad"></i> 虛擬模擬交易 (Paper Trading)</h3>
+                        <button id="paperResetBtn" class="btn-xs" title="重置帳戶資金"><i class="fa-solid fa-rotate-left"></i> 重置</button>
+                    </div>
+                    
+                    <div class="paper-account-grid">
+                        <div class="paper-metric">
+                            <span class="p-lbl">帳戶權益 (Equity)</span>
+                            <span id="paperEquity" class="p-val">$100,000.00</span>
+                        </div>
+                        <div class="paper-metric">
+                            <span class="p-lbl">未實現損益 (PnL)</span>
+                            <span id="paperPnL" class="p-val neutral">$0.00 (0.00%)</span>
+                        </div>
+                    </div>
+
+                    <!-- Active Position Display -->
+                    <div id="paperPositionBox" class="paper-pos-box empty">
+                        <span id="paperPosStatus">目前無持倉倉位</span>
+                    </div>
+
+                    <!-- Trade Execution Buttons -->
+                    <div class="paper-actions" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <div style="flex-basis: 100%; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; justify-content: center;">
+                            <label for="paperAmountOz" style="color: var(--text-muted); font-size: 0.9rem;">數量 (盎司):</label>
+                            <input type="number" id="paperAmountOz" value="1.0" step="0.1" min="0.1" style="width: 80px; padding: 4px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color);">
+                        </div>
+                        <button id="paperBuyBtn" class="btn-paper buy" style="flex: 1;"><i class="fa-solid fa-arrow-trend-up"></i> 模擬做多</button>
+                        <button id="paperSellBtn" class="btn-paper sell" style="flex: 1;"><i class="fa-solid fa-arrow-trend-down"></i> 模擬做空</button>
+                        <button id="paperCloseBtn" class="btn-paper close" disabled style="flex: 1;"><i class="fa-solid fa-xmark"></i> 全部平倉</button>
+                    </div>
+                </div>
+
+
+                <!-- Indicator Metrics Overview -->
+                <div class="card metrics-card">
+                    <h3><i class="fa-solid fa-gauge-high"></i> 技術指標即時監控</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-box">
+                            <span class="m-title">RSI (14)</span>
+                            <span id="rsiValue" class="m-val">--</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="m-title">MACD 柱狀體</span>
+                            <span id="macdValue" class="m-val">--</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="m-title">ATR 波動度</span>
+                            <span id="atrValue" class="m-val">--</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="m-title">EMA 9 / 50</span>
+                            <span id="emaRatio" class="m-val">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rule Hit Reasons -->
+                <div class="card rules-card">
+                    <h3><i class="fa-solid fa-list-check"></i> 觸發分析條件 (Trigger Conditions)</h3>
+                    <ul id="reasonsList" class="reasons-list">
+                        <li>等待載入市場分析...</li>
+                    </ul>
+                </div>
+                
+                <!-- Backtest Quick Summary -->
+                <div class="card backtest-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-clock-rotate-left"></i> 歷史回測勝率報告</h3>
+                        <button id="runBacktestBtn" class="btn-sm"><i class="fa-solid fa-play"></i> 執行回測</button>
+                    </div>
+                    <div id="backtestResults" class="backtest-grid">
+                        <div class="bt-metric">
+                            <span class="bt-lbl">歷史勝率 (Win Rate)</span>
+                            <span id="btWinRate" class="bt-val">--%</span>
+                        </div>
+                        <div class="bt-metric">
+                            <span class="bt-lbl">總報酬率 (Return)</span>
+                            <span id="btReturn" class="bt-val">--%</span>
+                        </div>
+                        <div class="bt-metric">
+                            <span class="bt-lbl">獲利因子 (Profit Factor)</span>
+                            <span id="btPF" class="bt-val">--</span>
+                        </div>
+                        <div class="bt-metric">
+                            <span class="bt-lbl">最大回撤 (Max Drawdown)</span>
+                            <span id="btMDD" class="bt-val">--%</span>
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+        </main>
+    </div>
+
+    <!-- Custom App Logic -->
+    <script src="/static/js/chart_manager.js?v=7.0"></script>
+    <script src="/static/js/app.js?v=7.0"></script>
+</body>
+</html>

@@ -513,10 +513,13 @@ def api_reset_paper_account():
 
 # Multi-fallback detection for frontend directory on Cloud (Vercel/Render/Railway/Docker) & Local
 possible_frontend_dirs = [
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public"),
     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend"),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "public"),
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend"),
+    os.path.join(os.getcwd(), "public"),
     os.path.join(os.getcwd(), "frontend"),
-    os.path.join(os.path.dirname(os.getcwd()), "frontend"),
+    "/var/task/public",
     "/var/task/frontend",
     "/var/task/backend/frontend",
     "/opt/render/project/src/frontend"

@@ -1,13 +1,7 @@
 {
-  "functions": {
-    "api/index.py": {
-      "includeFiles": "frontend/**",
-      "maxDuration": 30
-    }
-  },
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/(.*)",
       "destination": "/api/index.py"
     }
   ]

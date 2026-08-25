@@ -11,3 +11,15 @@ if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
 from backend.main import app
+
+@app.middleware("http")
+async def fix_vercel_path(request, call_next):
+    path = request.scope.get("path", "")
+    for prefix in ["/api/index.py", "/api/index"]:
+        if path.startswith(prefix):
+            new_path = path[len(prefix):]
+            if not new_path:
+                new_path = "/"
+            request.scope["path"] = new_path
+            break
+    return await call_next(request)
