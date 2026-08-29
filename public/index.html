@@ -404,7 +404,7 @@
                     </div>
                 </div>
 
-                <!-- Daily Major Gold Events Card -->
+                <!-- Daily Major Gold Events & News Card -->
 
                 <div class="card events-card">
                     <div class="card-header">
@@ -414,16 +414,32 @@
 
                     <!-- Macro Drivers List -->
                     <div class="macro-drivers-box">
-                        <span class="m-driver-title"><i class="fa-solid fa-fire"></i> 今日市場核心焦點:</span>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                            <span class="m-driver-title"><i class="fa-solid fa-fire"></i> 今日市場核心焦點 (聯網即時更新):</span>
+                            <span id="eventUpdateDate" style="font-size:10px; color:var(--text-muted);"></span>
+                        </div>
                         <ul id="driversList" class="drivers-list">
                             <li>載入中...</li>
                         </ul>
                     </div>
 
-                    <!-- Daily Events Timeline -->
-                    <div class="events-timeline-container">
+                    <!-- Event Category Tabs -->
+                    <div class="event-tab-bar" style="display:flex; gap:6px; margin:6px 0;">
+                        <button id="tabCalendarBtn" class="btn-xs" style="flex:1; padding:5px 8px; font-size:11px; font-weight:600; border-radius:4px; background:rgba(255,215,0,0.15); color:var(--gold-primary); border:1px solid var(--gold-primary); cursor:pointer;"><i class="fa-solid fa-calendar-week"></i> 重大財經日曆</button>
+                        <button id="tabNewsBtn" class="btn-xs" style="flex:1; padding:5px 8px; font-size:11px; font-weight:600; border-radius:4px; background:rgba(255,255,255,0.05); color:var(--text-muted); border:1px solid rgba(255,255,255,0.1); cursor:pointer;"><i class="fa-solid fa-newspaper"></i> 即時黃金新聞</button>
+                    </div>
+
+                    <!-- Daily Events Timeline Container -->
+                    <div id="eventsTimelineContainer" class="events-timeline-container">
                         <ul id="eventsList" class="events-timeline-list">
                             <li>載入今日財經日曆中...</li>
+                        </ul>
+                    </div>
+
+                    <!-- Live Breaking News Container -->
+                    <div id="liveNewsContainer" class="events-timeline-container" style="display:none;">
+                        <ul id="liveNewsList" class="events-timeline-list">
+                            <li>載入最新黃金新聞中...</li>
                         </ul>
                     </div>
                 </div>

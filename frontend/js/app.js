@@ -82,6 +82,33 @@ document.addEventListener("DOMContentLoaded", () => {
                 nativeQuoteBoard.style.display = "flex";
                 toggleQuoteModeText.textContent = "切換原廠網頁";
             }
+    // Event & News Tabs
+    const tabCal = document.getElementById("tabCalendarBtn");
+    const tabNw = document.getElementById("tabNewsBtn");
+    const calContainer = document.getElementById("eventsTimelineContainer");
+    const nwContainer = document.getElementById("liveNewsContainer");
+
+    if (tabCal && tabNw && calContainer && nwContainer) {
+        tabCal.addEventListener("click", () => {
+            calContainer.style.display = "block";
+            nwContainer.style.display = "none";
+            tabCal.style.background = "rgba(255,215,0,0.15)";
+            tabCal.style.color = "var(--gold-primary)";
+            tabCal.style.borderColor = "var(--gold-primary)";
+            tabNw.style.background = "rgba(255,255,255,0.05)";
+            tabNw.style.color = "var(--text-muted)";
+            tabNw.style.borderColor = "rgba(255,255,255,0.1)";
+        });
+
+        tabNw.addEventListener("click", () => {
+            calContainer.style.display = "none";
+            nwContainer.style.display = "block";
+            tabNw.style.background = "rgba(41,98,255,0.2)";
+            tabNw.style.color = "#82B1FF";
+            tabNw.style.borderColor = "#82B1FF";
+            tabCal.style.background = "rgba(255,255,255,0.05)";
+            tabCal.style.color = "var(--text-muted)";
+            tabCal.style.borderColor = "rgba(255,255,255,0.1)";
         });
     }
 
@@ -554,6 +581,12 @@ document.addEventListener("DOMContentLoaded", () => {
             
             if (!data) return;
 
+            // Date & Live Sync Indicator
+            const updateDateEl = document.getElementById("eventUpdateDate");
+            if (updateDateEl && data.date) {
+                updateDateEl.textContent = `📅 ${data.date}`;
+            }
+
             // Macro Sentiment Tag
             const sentimentTag = document.getElementById("eventSentimentTag");
             if (sentimentTag && data.macro_sentiment) {
@@ -592,6 +625,31 @@ document.addEventListener("DOMContentLoaded", () => {
                     `;
                     eventsList.appendChild(li);
                 });
+            }
+
+            // Live News List
+            const liveNewsList = document.getElementById("liveNewsList");
+            if (liveNewsList && data.live_news) {
+                liveNewsList.innerHTML = "";
+                if (data.live_news.length === 0) {
+                    liveNewsList.innerHTML = "<li style='color:var(--text-muted); font-size:11px;'>暫無即時快訊，請稍候重新載入</li>";
+                } else {
+                    data.live_news.forEach(nw => {
+                        const li = document.createElement("li");
+                        li.className = "event-item";
+                        li.style.borderLeftColor = "var(--accent-blue, #2962FF)";
+                        li.innerHTML = `
+                            <div class="event-top">
+                                <span class="event-time" style="color:var(--gold-primary); font-weight:600;"><i class="fa-solid fa-bolt"></i> ${nw.source || '即時快訊'}</span>
+                                <span class="event-time">${nw.pub_date ? nw.pub_date.slice(0, 16) : ''}</span>
+                            </div>
+                            <a href="${nw.link || '#'}" target="_blank" rel="noopener noreferrer" style="color:var(--text-primary); font-size:11px; line-height:1.4; font-weight:600; text-decoration:none; margin: 2px 0; display:block;">
+                                ${nw.title} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9px; opacity:0.6; margin-left:2px;"></i>
+                            </a>
+                        `;
+                        liveNewsList.appendChild(li);
+                    });
+                }
             }
 
         } catch (e) {

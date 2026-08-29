@@ -15,6 +15,7 @@ from data_fetcher import get_gold_candles
 from indicator_engine import calculate_indicators
 from signal_generator import generate_signals, get_latest_signal_summary
 from backtester import run_backtest
+from events_service import get_daily_gold_events
 
 
 
@@ -292,59 +293,9 @@ def api_get_spot_quote(symbol: str = "XAUUSD"):
 @app.get("/api/gold/events")
 def api_get_events():
     """
-    Returns today's and upcoming major economic events & financial calendar impacting Gold.
+    Returns today's and upcoming major economic events, live news & financial calendar impacting Gold.
     """
-    events = [
-        {
-            "time": "20:30 (今日)",
-            "title": "美國 7 月 CPI 消費者物價指數 (YoY)",
-            "impact": "HIGH",
-            "forecast": "3.0%",
-            "previous": "3.1%",
-            "analysis": "通膨低於預期將強化 FED 降息預期 ➔ 美元走弱 ➔ 利多黃金爆漲 🚀"
-        },
-        {
-            "time": "21:45 (今日)",
-            "title": "標普 S&P 全球服務業 PMI 數據",
-            "impact": "MEDIUM",
-            "forecast": "55.2",
-            "previous": "55.3",
-            "analysis": "數據走弱反映經濟趨緩，提振黃金避險需求。"
-        },
-        {
-            "time": "02:00 (明日)",
-            "title": "FOMC 美聯儲利率決策會議紀要公布",
-            "impact": "HIGH",
-            "forecast": "關注降息信號",
-            "previous": "維持利率",
-            "analysis": "紀要若釋出鴿派降息訊號，黃金預期將向上突破攻高。"
-        },
-        {
-            "time": "20:30 (週四)",
-            "title": "美國當週初領失業金人數 (萬人)",
-            "impact": "HIGH",
-            "forecast": "23.5",
-            "previous": "23.6",
-            "analysis": "失業人數若高於預期，顯示就業市場降溫，利多黃金。"
-        }
-    ]
-
-    macro_sentiment = {
-        "overall_sentiment": "BULLISH",
-        "sentiment_score": 78,
-        "sentiment_label": "🔥 強烈避險多頭情緒",
-        "key_drivers": [
-            "全球各國央行 (中國、印度、波蘭) 持續增持黃金儲備",
-            "美聯儲 (FED) 下半年降息預期維持高位",
-            "地緣政治避險買盤鎖定黃金作為防禦資產"
-        ]
-    }
-
-    return {
-        "date": "2026-08-12",
-        "events": events,
-        "macro_sentiment": macro_sentiment
-    }
+    return get_daily_gold_events()
 
 # Paper Trading State
 import json
