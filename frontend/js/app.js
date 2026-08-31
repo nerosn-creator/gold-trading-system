@@ -117,35 +117,30 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Event & News Tabs
+    // Global Event & News Tab Switcher Function
+    window.switchEventTab = function(tabName) {
+        const tabCal = document.getElementById("tabCalendarBtn");
+        const tabNw = document.getElementById("tabNewsBtn");
+        const calContainer = document.getElementById("eventsTimelineContainer");
+        const nwContainer = document.getElementById("liveNewsContainer");
+
+        if (tabName === "calendar") {
+            if (calContainer) calContainer.style.display = "block";
+            if (nwContainer) nwContainer.style.display = "none";
+            if (tabCal) tabCal.className = "event-tab-btn active calendar";
+            if (tabNw) tabNw.className = "event-tab-btn news";
+        } else if (tabName === "news") {
+            if (calContainer) calContainer.style.display = "none";
+            if (nwContainer) nwContainer.style.display = "block";
+            if (tabCal) tabCal.className = "event-tab-btn calendar";
+            if (tabNw) tabNw.className = "event-tab-btn active news";
+        }
+    };
+
     const tabCal = document.getElementById("tabCalendarBtn");
     const tabNw = document.getElementById("tabNewsBtn");
-    const calContainer = document.getElementById("eventsTimelineContainer");
-    const nwContainer = document.getElementById("liveNewsContainer");
-
-    if (tabCal && tabNw && calContainer && nwContainer) {
-        tabCal.addEventListener("click", () => {
-            calContainer.style.display = "block";
-            nwContainer.style.display = "none";
-            tabCal.style.background = "rgba(255,215,0,0.15)";
-            tabCal.style.color = "var(--gold-primary)";
-            tabCal.style.borderColor = "var(--gold-primary)";
-            tabNw.style.background = "rgba(255,255,255,0.05)";
-            tabNw.style.color = "var(--text-muted)";
-            tabNw.style.borderColor = "rgba(255,255,255,0.1)";
-        });
-
-        tabNw.addEventListener("click", () => {
-            calContainer.style.display = "none";
-            nwContainer.style.display = "block";
-            tabNw.style.background = "rgba(41,98,255,0.2)";
-            tabNw.style.color = "#82B1FF";
-            tabNw.style.borderColor = "#82B1FF";
-            tabCal.style.background = "rgba(255,255,255,0.05)";
-            tabCal.style.color = "var(--text-muted)";
-            tabCal.style.borderColor = "rgba(255,255,255,0.1)";
-        });
-    }
+    if (tabCal) tabCal.addEventListener("click", () => window.switchEventTab("calendar"));
+    if (tabNw) tabNw.addEventListener("click", () => window.switchEventTab("news"));
 
     // Initial Data Fetching
     loadDashboardData();
