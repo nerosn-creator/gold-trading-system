@@ -28,7 +28,7 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪙</text></svg>">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/styles.css?v=7.0">
+    <link rel="stylesheet" href="/static/css/styles.css?v=8.0">
 
 </head>
 <body>
@@ -445,8 +445,6 @@
                 </div>
 
                 <!-- Paper Trading Sandbox Card -->
-
-
                 <div class="card paper-trading-card">
                     <div class="card-header">
                         <h3><i class="fa-solid fa-gamepad"></i> 虛擬模擬交易 (Paper Trading)</h3>
@@ -460,24 +458,32 @@
                         </div>
                         <div class="paper-metric">
                             <span class="p-lbl">未實現損益 (PnL)</span>
-                            <span id="paperPnL" class="p-val neutral">$0.00 (0.00%)</span>
+                            <span id="paperPnL" class="p-val neutral">+$0.00 (+0.00%)</span>
                         </div>
                     </div>
 
-                    <!-- Active Position Display -->
+                    <!-- Active Position Display Container -->
                     <div id="paperPositionBox" class="paper-pos-box empty">
-                        <span id="paperPosStatus">目前無持倉倉位</span>
+                        <div id="paperPosStatus">目前無持倉倉位</div>
                     </div>
 
-                    <!-- Trade Execution Buttons -->
-                    <div class="paper-actions" style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        <div style="flex-basis: 100%; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; justify-content: center;">
-                            <label for="paperAmountOz" style="color: var(--text-muted); font-size: 0.9rem;">數量 (盎司):</label>
-                            <input type="number" id="paperAmountOz" value="1.0" step="0.1" min="0.1" style="width: 80px; padding: 4px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color);">
+                    <!-- Trade Execution Actions Layout -->
+                    <div class="paper-actions-container">
+                        <div class="paper-amount-row">
+                            <label for="paperAmountOz"><i class="fa-solid fa-scale-balanced"></i> 手數 (盎司):</label>
+                            <div class="paper-amount-input-group">
+                                <button type="button" class="btn-amount-step" id="paperAmountMinus">-</button>
+                                <input type="number" id="paperAmountOz" value="1.0" step="0.5" min="0.1" max="100.0">
+                                <button type="button" class="btn-amount-step" id="paperAmountPlus">+</button>
+                            </div>
                         </div>
-                        <button id="paperBuyBtn" class="btn-paper buy" style="flex: 1;"><i class="fa-solid fa-arrow-trend-up"></i> 模擬做多</button>
-                        <button id="paperSellBtn" class="btn-paper sell" style="flex: 1;"><i class="fa-solid fa-arrow-trend-down"></i> 模擬做空</button>
-                        <button id="paperCloseBtn" class="btn-paper close" disabled style="flex: 1;"><i class="fa-solid fa-xmark"></i> 全部平倉</button>
+
+                        <div class="paper-trade-btn-row">
+                            <button id="paperBuyBtn" class="btn-paper buy"><i class="fa-solid fa-arrow-trend-up"></i> 模擬做多</button>
+                            <button id="paperSellBtn" class="btn-paper sell"><i class="fa-solid fa-arrow-trend-down"></i> 模擬做空</button>
+                        </div>
+
+                        <button id="paperCloseBtn" class="btn-paper close-all" disabled><i class="fa-solid fa-xmark"></i> 全部平倉</button>
                     </div>
                 </div>
 
@@ -544,7 +550,7 @@
     </div>
 
     <!-- Custom App Logic -->
-    <script src="/static/js/chart_manager.js?v=7.0"></script>
-    <script src="/static/js/app.js?v=7.0"></script>
+    <script src="/static/js/chart_manager.js?v=8.0"></script>
+    <script src="/static/js/app.js?v=8.0"></script>
 </body>
 </html>

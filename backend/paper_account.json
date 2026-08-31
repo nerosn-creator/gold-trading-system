@@ -1,24 +1,7 @@
 {
   "initial_balance": 100000.0,
   "cash": 100000.0,
-  "positions": [
-    {
-      "side": "BUY",
-      "entry_price": 4372.89990234375,
-      "amount_oz": 1.0,
-      "entry_time": "2026-08-14 10:01:28",
-      "tp": 4434.51,
-      "sl": 4344.15
-    },
-    {
-      "side": "BUY",
-      "entry_price": 4372.0,
-      "amount_oz": 10.0,
-      "entry_time": "2026-08-14 10:01:39",
-      "tp": 4433.61,
-      "sl": 4343.25
-    }
-  ],
+  "positions": [],
   "position": null,
   "trades": []
 }

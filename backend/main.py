@@ -312,7 +312,7 @@ def load_paper_account_state():
         "position": None,
         "trades": []
     }
-    for target in [TMP_PAPER_FILE, PAPER_FILE]:
+    for target in [PAPER_FILE, TMP_PAPER_FILE]:
         if os.path.exists(target):
             try:
                 with open(target, "r", encoding="utf-8") as f:

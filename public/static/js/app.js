@@ -3,7 +3,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let chartManager = null;
 
     // Initialize Chart
-    chartManager = new GoldChartManager("candleChartContainer");
+    if (typeof GoldChartManager !== "undefined") {
+        chartManager = new GoldChartManager("candleChartContainer");
+    }
 
     // Timeframe selector buttons
     const tfButtons = document.querySelectorAll(".tf-btn");
@@ -25,22 +27,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Toggle switches
-    document.getElementById("toggleEMA").addEventListener("change", (e) => {
-        chartManager.setEMAVisible(e.target.checked);
-    });
+    const toggleEMA = document.getElementById("toggleEMA");
+    if (toggleEMA && chartManager) {
+        toggleEMA.addEventListener("change", (e) => {
+            chartManager.setEMAVisible(e.target.checked);
+        });
+    }
 
-    document.getElementById("toggleBB").addEventListener("change", (e) => {
-        chartManager.setBBVisible(e.target.checked);
-    });
+    const toggleBB = document.getElementById("toggleBB");
+    if (toggleBB && chartManager) {
+        toggleBB.addEventListener("change", (e) => {
+            chartManager.setBBVisible(e.target.checked);
+        });
+    }
 
-    document.getElementById("toggleSignals").addEventListener("change", () => {
-        loadDashboardData();
-    });
+    const toggleSignals = document.getElementById("toggleSignals");
+    if (toggleSignals) {
+        toggleSignals.addEventListener("change", () => {
+            loadDashboardData();
+        });
+    }
 
     // Backtest Button
-    document.getElementById("runBacktestBtn").addEventListener("click", () => {
-        runBacktest();
-    });
+    const runBacktestBtn = document.getElementById("runBacktestBtn");
+    if (runBacktestBtn) {
+        runBacktestBtn.addEventListener("click", () => {
+            runBacktest();
+        });
+    }
 
     // AI Optimization Button
     const runOptimizeBtn = document.getElementById("runOptimizeBtn");
@@ -59,11 +73,29 @@ document.addEventListener("DOMContentLoaded", () => {
     const paperCloseBtn = document.getElementById("paperCloseBtn");
     const paperResetBtn = document.getElementById("paperResetBtn");
     const paperAmountOz = document.getElementById("paperAmountOz");
+    const paperAmountMinus = document.getElementById("paperAmountMinus");
+    const paperAmountPlus = document.getElementById("paperAmountPlus");
 
     if (paperBuyBtn) paperBuyBtn.addEventListener("click", () => placePaperTrade("BUY"));
     if (paperSellBtn) paperSellBtn.addEventListener("click", () => placePaperTrade("SELL"));
-    if (paperCloseBtn) paperCloseBtn.addEventListener("click", closePaperTrade);
+    if (paperCloseBtn) paperCloseBtn.addEventListener("click", () => closePaperTrade(null));
     if (paperResetBtn) paperResetBtn.addEventListener("click", resetPaperAccount);
+
+    if (paperAmountMinus && paperAmountOz) {
+        paperAmountMinus.addEventListener("click", () => {
+            let val = parseFloat(paperAmountOz.value) || 1.0;
+            val = Math.max(0.1, parseFloat((val - 0.5).toFixed(1)));
+            paperAmountOz.value = val;
+        });
+    }
+
+    if (paperAmountPlus && paperAmountOz) {
+        paperAmountPlus.addEventListener("click", () => {
+            let val = parseFloat(paperAmountOz.value) || 1.0;
+            val = Math.min(100.0, parseFloat((val + 0.5).toFixed(1)));
+            paperAmountOz.value = val;
+        });
+    }
 
     // Toggle Mode Button for First Bank Section
     const toggleQuoteViewBtn = document.getElementById("toggleQuoteViewBtn");
@@ -71,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const iframeQuoteWrapper = document.getElementById("iframeQuoteWrapper");
     const toggleQuoteModeText = document.getElementById("toggleQuoteModeText");
 
-    if (toggleQuoteViewBtn) {
+    if (toggleQuoteViewBtn && nativeQuoteBoard && iframeQuoteWrapper && toggleQuoteModeText) {
         toggleQuoteViewBtn.addEventListener("click", () => {
             if (iframeQuoteWrapper.style.display === "none") {
                 iframeQuoteWrapper.style.display = "block";
@@ -82,6 +114,36 @@ document.addEventListener("DOMContentLoaded", () => {
                 nativeQuoteBoard.style.display = "flex";
                 toggleQuoteModeText.textContent = "切換原廠網頁";
             }
+        });
+    }
+
+    // Event & News Tabs
+    const tabCal = document.getElementById("tabCalendarBtn");
+    const tabNw = document.getElementById("tabNewsBtn");
+    const calContainer = document.getElementById("eventsTimelineContainer");
+    const nwContainer = document.getElementById("liveNewsContainer");
+
+    if (tabCal && tabNw && calContainer && nwContainer) {
+        tabCal.addEventListener("click", () => {
+            calContainer.style.display = "block";
+            nwContainer.style.display = "none";
+            tabCal.style.background = "rgba(255,215,0,0.15)";
+            tabCal.style.color = "var(--gold-primary)";
+            tabCal.style.borderColor = "var(--gold-primary)";
+            tabNw.style.background = "rgba(255,255,255,0.05)";
+            tabNw.style.color = "var(--text-muted)";
+            tabNw.style.borderColor = "rgba(255,255,255,0.1)";
+        });
+
+        tabNw.addEventListener("click", () => {
+            calContainer.style.display = "none";
+            nwContainer.style.display = "block";
+            tabNw.style.background = "rgba(41,98,255,0.2)";
+            tabNw.style.color = "#82B1FF";
+            tabNw.style.borderColor = "#82B1FF";
+            tabCal.style.background = "rgba(255,255,255,0.05)";
+            tabCal.style.color = "var(--text-muted)";
+            tabCal.style.borderColor = "rgba(255,255,255,0.1)";
         });
     }
 
@@ -153,7 +215,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (fbUsdSell && data.usd_spot_sell) fbUsdSell.textContent = data.usd_spot_sell.toFixed(3);
             if (fbUsdBuy && data.usd_spot_buy) fbUsdBuy.textContent = data.usd_spot_buy.toFixed(3);
-
 
         } catch (e) {
             console.error("Failed to load First Bank gold rates:", e);
@@ -320,51 +381,120 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.stroke();
     }
 
+    // ==========================================
+    // Robust Paper Trading Engine (v3)
+    // ==========================================
+    const PAPER_STORAGE_KEY = "gold_paper_trading_account_v3";
 
-    async function loadPaperAccount() {
+    function getLocalPaperAccount() {
         try {
-            const res = await fetch("/api/paper/account");
-            const data = await res.json();
-            
-            if (paperEquity) paperEquity.textContent = `$${data.equity.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-            
-            const pnl = data.unrealized_pnl || 0;
-            const pnlPct = data.unrealized_pnl_pct || 0;
-            const sign = pnl >= 0 ? "+" : "";
-            if (paperPnL) {
-                paperPnL.textContent = `${sign}$${pnl.toFixed(2)} (${sign}${pnlPct.toFixed(2)}%)`;
-                paperPnL.className = `p-val ${pnl > 0 ? "bullish" : (pnl < 0 ? "bearish" : "neutral")}`;
+            const raw = localStorage.getItem(PAPER_STORAGE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed.cash === "number" && Array.isArray(parsed.positions)) {
+                    return parsed;
+                }
+            }
+        } catch (e) {
+            console.warn("Error reading paper account from localStorage:", e);
+        }
+        return {
+            initial_balance: 100000.0,
+            cash: 100000.0,
+            positions: [],
+            trades: []
+        };
+    }
+
+    function saveLocalPaperAccount(account) {
+        try {
+            localStorage.setItem(PAPER_STORAGE_KEY, JSON.stringify(account));
+        } catch (e) {
+            console.warn("Error saving paper account to localStorage:", e);
+        }
+    }
+
+    function getPaperCurrentPrice() {
+        if (window.currentGoldPrice && window.currentGoldPrice > 0) {
+            return window.currentGoldPrice;
+        }
+        const heroSpotPrice = document.getElementById("heroSpotPrice");
+        if (heroSpotPrice && heroSpotPrice.textContent) {
+            const parsed = parseFloat(heroSpotPrice.textContent.replace(/[^0-9.]/g, ""));
+            if (parsed > 0) return parsed;
+        }
+        const tickerPrice = document.getElementById("tickerPrice");
+        if (tickerPrice && tickerPrice.textContent) {
+            const parsed = parseFloat(tickerPrice.textContent.replace(/[^0-9.]/g, ""));
+            if (parsed > 0) return parsed;
+        }
+        return 4450.0;
+    }
+
+    function loadPaperAccount() {
+        try {
+            const account = getLocalPaperAccount();
+            const currentPrice = getPaperCurrentPrice();
+            const positions = account.positions || [];
+
+            let totalUnrealizedPnl = 0.0;
+            let totalEntryValue = 0.0;
+
+            positions.forEach(pos => {
+                let posPnl = 0.0;
+                if (pos.side === "BUY") {
+                    posPnl = (currentPrice - pos.entry_price) * pos.amount_oz;
+                } else {
+                    posPnl = (pos.entry_price - currentPrice) * pos.amount_oz;
+                }
+                pos.currentPnl = posPnl;
+                totalUnrealizedPnl += posPnl;
+                totalEntryValue += pos.entry_price * pos.amount_oz;
+            });
+
+            const equity = account.cash + totalUnrealizedPnl;
+            const pnlPct = totalEntryValue > 0 ? (totalUnrealizedPnl / totalEntryValue) * 100 : 0.0;
+
+            if (paperEquity) {
+                paperEquity.textContent = `$${equity.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             }
 
-            const positions = data.positions || (data.position ? [data.position] : []);
-            
+            const sign = totalUnrealizedPnl >= 0 ? "+" : "";
+            if (paperPnL) {
+                paperPnL.textContent = `${sign}$${totalUnrealizedPnl.toFixed(2)} (${sign}${pnlPct.toFixed(2)}%)`;
+                paperPnL.className = `p-val ${totalUnrealizedPnl > 0 ? "bullish" : (totalUnrealizedPnl < 0 ? "bearish" : "neutral")}`;
+            }
+
             if (positions.length > 0 && paperPosStatus && paperPositionBox) {
                 let htmlContent = "";
-                let hasBuy = false;
-                let hasSell = false;
-                
                 positions.forEach((pos, idx) => {
-                    const sideText = pos.side === "BUY" ? "做多 (BUY)" : "做空 (SELL)";
-                    const sideClass = pos.side === "BUY" ? "active-buy" : "active-sell";
-                    if (pos.side === "BUY") hasBuy = true;
-                    if (pos.side === "SELL") hasSell = true;
-                    
-                    htmlContent += `<div style="margin-bottom: 4px;"><strong>${sideText}</strong> @ $${pos.entry_price.toFixed(2)} (${pos.amount_oz} 盎司)</div>`;
+                    const sideIsBuy = pos.side === "BUY";
+                    const sideClass = sideIsBuy ? "buy" : "sell";
+                    const sideText = sideIsBuy ? "多" : "空";
+                    const pnlSign = pos.currentPnl >= 0 ? "+" : "";
+                    const pnlClass = pos.currentPnl >= 0 ? "bullish" : "bearish";
+                    const posId = pos.id || `pos_${idx}`;
+
+                    htmlContent += `
+                        <div class="paper-pos-item ${sideClass}">
+                            <span class="pos-badge ${sideClass}">${sideText}</span>
+                            <div class="pos-info-text">
+                                <span>@ $${pos.entry_price.toFixed(2)} (${pos.amount_oz}oz)</span>
+                                <span class="pos-pnl ${pnlClass}">${pnlSign}$${pos.currentPnl.toFixed(2)}</span>
+                            </div>
+                            <button type="button" class="pos-single-close-btn" onclick="window.closeSinglePaperPos('${posId}')" title="平掉此單">平倉</button>
+                        </div>
+                    `;
                 });
-                
+
                 paperPosStatus.innerHTML = htmlContent;
-                
-                if (hasBuy && hasSell) paperPositionBox.className = "paper-pos-box"; // Mixed
-                else if (hasBuy) paperPositionBox.className = "paper-pos-box active-buy";
-                else paperPositionBox.className = "paper-pos-box active-sell";
-                
+                paperPositionBox.className = "paper-pos-box has-pos";
                 if (paperCloseBtn) paperCloseBtn.disabled = false;
             } else if (paperPosStatus && paperPositionBox) {
-                paperPosStatus.textContent = "目前無持倉倉位";
+                paperPosStatus.innerHTML = '<span style="color: var(--text-dim);">目前無持倉倉位</span>';
                 paperPositionBox.className = "paper-pos-box empty";
                 if (paperCloseBtn) paperCloseBtn.disabled = true;
             }
-
         } catch (e) {
             console.error("Failed to load paper account:", e);
         }
@@ -374,28 +504,128 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const amountInput = document.getElementById("paperAmountOz");
             const amount = amountInput ? parseFloat(amountInput.value) || 1.0 : 1.0;
-            const res = await fetch(`/api/paper/trade?side=${side}&amount_oz=${amount}`, { method: "POST" });
-            const data = await res.json();
+            if (amount <= 0) {
+                alert("請輸入大於 0 的手數");
+                return;
+            }
+
+            const currentPrice = getPaperCurrentPrice();
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            const dateStr = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} ${timeStr}`;
+
+            const account = getLocalPaperAccount();
+            if (!account.positions) account.positions = [];
+
+            const newPos = {
+                id: "pos_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+                side: side.toUpperCase(),
+                entry_price: currentPrice,
+                amount_oz: amount,
+                entry_time: dateStr,
+                tp: side === "BUY" ? currentPrice * 1.02 : currentPrice * 0.98,
+                sl: side === "BUY" ? currentPrice * 0.98 : currentPrice * 1.02
+            };
+
+            account.positions.push(newPos);
+            saveLocalPaperAccount(account);
             loadPaperAccount();
         } catch (e) {
             console.error("Paper trade failed:", e);
         }
     }
 
-    async function closePaperTrade() {
+    async function closePaperTrade(targetPosId = null) {
         try {
-            const res = await fetch("/api/paper/close", { method: "POST" });
-            const data = await res.json();
+            const account = getLocalPaperAccount();
+            let positions = account.positions || [];
+            if (positions.length === 0) return;
+
+            const exitPrice = getPaperCurrentPrice();
+            const now = new Date();
+            const exitTime = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+            if (!account.trades) account.trades = [];
+
+            if (targetPosId) {
+                // Close single specific position
+                const posIndex = positions.findIndex((p, idx) => (p.id === targetPosId || `pos_${idx}` === targetPosId));
+                if (posIndex !== -1) {
+                    const pos = positions[posIndex];
+                    let profit = 0;
+                    if (pos.side === "BUY") {
+                        profit = (exitPrice - pos.entry_price) * pos.amount_oz;
+                    } else {
+                        profit = (pos.entry_price - exitPrice) * pos.amount_oz;
+                    }
+
+                    account.trades.push({
+                        side: pos.side,
+                        entry_time: pos.entry_time,
+                        entry_price: pos.entry_price,
+                        exit_time: exitTime,
+                        exit_price: exitPrice,
+                        amount_oz: pos.amount_oz,
+                        profit: parseFloat(profit.toFixed(2)),
+                        win: profit > 0
+                    });
+
+                    account.cash = parseFloat((account.cash + profit).toFixed(2));
+                    positions.splice(posIndex, 1);
+                }
+            } else {
+                // Close all positions
+                let totalProfit = 0;
+                positions.forEach(pos => {
+                    let profit = 0;
+                    if (pos.side === "BUY") {
+                        profit = (exitPrice - pos.entry_price) * pos.amount_oz;
+                    } else {
+                        profit = (pos.entry_price - exitPrice) * pos.amount_oz;
+                    }
+                    totalProfit += profit;
+
+                    account.trades.push({
+                        side: pos.side,
+                        entry_time: pos.entry_time,
+                        entry_price: pos.entry_price,
+                        exit_time: exitTime,
+                        exit_price: exitPrice,
+                        amount_oz: pos.amount_oz,
+                        profit: parseFloat(profit.toFixed(2)),
+                        win: profit > 0
+                    });
+                });
+
+                account.cash = parseFloat((account.cash + totalProfit).toFixed(2));
+                positions = [];
+            }
+
+            account.positions = positions;
+            saveLocalPaperAccount(account);
             loadPaperAccount();
         } catch (e) {
             console.error("Paper close failed:", e);
         }
     }
 
+    // Expose close single position function to global window for onclick handler
+    window.closeSinglePaperPos = function(id) {
+        closePaperTrade(id);
+    };
+
     async function resetPaperAccount() {
         try {
-            const res = await fetch("/api/paper/reset", { method: "POST" });
-            const data = await res.json();
+            if (!confirm("確定要重置模擬交易帳戶？資金將恢復為 $100,000 USD 並清空所有持倉。")) {
+                return;
+            }
+            const defaultAccount = {
+                initial_balance: 100000.0,
+                cash: 100000.0,
+                positions: [],
+                trades: []
+            };
+            saveLocalPaperAccount(defaultAccount);
             loadPaperAccount();
         } catch (e) {
             console.error("Paper reset failed:", e);
@@ -404,6 +634,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function updateSummaryUI(summary) {
         if (!summary || !summary.current_price) return;
+        window.currentGoldPrice = summary.current_price;
+        loadPaperAccount();
 
         // Update Live Gold Price Hero Banner
         const heroSpotPrice = document.getElementById("heroSpotPrice");
@@ -448,35 +680,46 @@ document.addEventListener("DOMContentLoaded", () => {
         const signalScore = document.getElementById("signalScore");
         const signalTime = document.getElementById("signalTime");
 
-        signalBadge.textContent = getChineseSignalText(summary.signal_type);
-        signalBadge.className = `signal-badge ${summary.signal_type}`;
+        if (signalBadge) {
+            signalBadge.textContent = getChineseSignalText(summary.signal_type);
+            signalBadge.className = `signal-badge ${summary.signal_type}`;
+        }
 
-        signalScore.textContent = `${summary.signal_score > 0 ? "+" : ""}${summary.signal_score}`;
-        signalTime.textContent = `更新時間: ${summary.timestamp.split(" ")[1] || summary.timestamp}`;
+        if (signalScore) signalScore.textContent = `${summary.signal_score > 0 ? "+" : ""}${summary.signal_score}`;
+        if (signalTime) signalTime.textContent = `更新時間: ${summary.timestamp ? (summary.timestamp.split(" ")[1] || summary.timestamp) : "--:--"}`;
 
         // TP / SL
-        document.getElementById("tpPrice").textContent = `$${summary.take_profit.toFixed(2)}`;
-        document.getElementById("slPrice").textContent = `$${summary.stop_loss.toFixed(2)}`;
+        const tpPrice = document.getElementById("tpPrice");
+        const slPrice = document.getElementById("slPrice");
+        if (tpPrice && summary.take_profit) tpPrice.textContent = `$${summary.take_profit.toFixed(2)}`;
+        if (slPrice && summary.stop_loss) slPrice.textContent = `$${summary.stop_loss.toFixed(2)}`;
 
         // Indicators Monitor
-        document.getElementById("rsiValue").textContent = summary.rsi_14;
-        document.getElementById("macdValue").textContent = summary.macd_hist;
-        document.getElementById("atrValue").textContent = summary.atr_14;
-        document.getElementById("emaRatio").textContent = `${summary.ema_9} / ${summary.ema_50}`;
+        const rsiValue = document.getElementById("rsiValue");
+        const macdValue = document.getElementById("macdValue");
+        const atrValue = document.getElementById("atrValue");
+        const emaRatio = document.getElementById("emaRatio");
+
+        if (rsiValue) rsiValue.textContent = summary.rsi_14;
+        if (macdValue) macdValue.textContent = summary.macd_hist;
+        if (atrValue) atrValue.textContent = summary.atr_14;
+        if (emaRatio) emaRatio.textContent = `${summary.ema_9} / ${summary.ema_50}`;
 
         // Reasons List
         const reasonsList = document.getElementById("reasonsList");
-        reasonsList.innerHTML = "";
-        if (summary.reasons && summary.reasons.length > 0) {
-            summary.reasons.forEach(r => {
+        if (reasonsList) {
+            reasonsList.innerHTML = "";
+            if (summary.reasons && summary.reasons.length > 0) {
+                summary.reasons.forEach(r => {
+                    const li = document.createElement("li");
+                    li.textContent = r;
+                    reasonsList.appendChild(li);
+                });
+            } else {
                 const li = document.createElement("li");
-                li.textContent = r;
+                li.textContent = "多空指標力道均衡，無顯著突破條件。";
                 reasonsList.appendChild(li);
-            });
-        } else {
-            const li = document.createElement("li");
-            li.textContent = "多空指標力道均衡，無顯著突破條件。";
-            reasonsList.appendChild(li);
+            }
         }
     }
 
@@ -493,22 +736,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function runBacktest() {
         try {
-            document.getElementById("runBacktestBtn").textContent = "計算中...";
+            const btn = document.getElementById("runBacktestBtn");
+            if (btn) btn.textContent = "計算中...";
             const res = await fetch(`/api/gold/backtest?symbol=XAUUSD&interval=${currentTf}`);
             const result = await res.json();
             
-            document.getElementById("btWinRate").textContent = `${result.win_rate_pct}%`;
-            document.getElementById("btReturn").textContent = `${result.total_return_pct > 0 ? "+" : ""}${result.total_return_pct}%`;
-            document.getElementById("btPF").textContent = result.profit_factor;
-            document.getElementById("btMDD").textContent = `-${result.max_drawdown_pct}%`;
+            const btWinRate = document.getElementById("btWinRate");
+            const btReturn = document.getElementById("btReturn");
+            const btPF = document.getElementById("btPF");
+            const btMDD = document.getElementById("btMDD");
 
-            document.getElementById("runBacktestBtn").innerHTML = '<i class="fa-solid fa-check"></i> 完成';
-            setTimeout(() => {
-                document.getElementById("runBacktestBtn").innerHTML = '<i class="fa-solid fa-play"></i> 執行回測';
-            }, 2000);
+            if (btWinRate) btWinRate.textContent = `${result.win_rate_pct}%`;
+            if (btReturn) btReturn.textContent = `${result.total_return_pct > 0 ? "+" : ""}${result.total_return_pct}%`;
+            if (btPF) btPF.textContent = result.profit_factor;
+            if (btMDD) btMDD.textContent = `-${result.max_drawdown_pct}%`;
+
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> 完成';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fa-solid fa-play"></i> 執行回測';
+                }, 2000);
+            }
         } catch (err) {
             console.error("Backtest failed:", err);
-            document.getElementById("runBacktestBtn").innerHTML = '<i class="fa-solid fa-play"></i> 執行回測';
+            const btn = document.getElementById("runBacktestBtn");
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-play"></i> 執行回測';
         }
     }
 
@@ -554,6 +806,12 @@ document.addEventListener("DOMContentLoaded", () => {
             
             if (!data) return;
 
+            // Date & Live Sync Indicator
+            const updateDateEl = document.getElementById("eventUpdateDate");
+            if (updateDateEl && data.date) {
+                updateDateEl.textContent = `📅 ${data.date}`;
+            }
+
             // Macro Sentiment Tag
             const sentimentTag = document.getElementById("eventSentimentTag");
             if (sentimentTag && data.macro_sentiment) {
@@ -592,6 +850,31 @@ document.addEventListener("DOMContentLoaded", () => {
                     `;
                     eventsList.appendChild(li);
                 });
+            }
+
+            // Live News List
+            const liveNewsList = document.getElementById("liveNewsList");
+            if (liveNewsList && data.live_news) {
+                liveNewsList.innerHTML = "";
+                if (data.live_news.length === 0) {
+                    liveNewsList.innerHTML = "<li style='color:var(--text-muted); font-size:11px;'>暫無即時快訊，請稍候重新載入</li>";
+                } else {
+                    data.live_news.forEach(nw => {
+                        const li = document.createElement("li");
+                        li.className = "event-item";
+                        li.style.borderLeftColor = "var(--accent-blue, #2962FF)";
+                        li.innerHTML = `
+                            <div class="event-top">
+                                <span class="event-time" style="color:var(--gold-primary); font-weight:600;"><i class="fa-solid fa-bolt"></i> ${nw.source || '即時快訊'}</span>
+                                <span class="event-time">${nw.pub_date ? nw.pub_date.slice(0, 16) : ''}</span>
+                            </div>
+                            <a href="${nw.link || '#'}" target="_blank" rel="noopener noreferrer" style="color:var(--text-primary); font-size:11px; line-height:1.4; font-weight:600; text-decoration:none; margin: 2px 0; display:block;">
+                                ${nw.title} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9px; opacity:0.6; margin-left:2px;"></i>
+                            </a>
+                        `;
+                        liveNewsList.appendChild(li);
+                    });
+                }
             }
 
         } catch (e) {
