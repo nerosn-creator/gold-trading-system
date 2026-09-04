@@ -9,6 +9,7 @@ class GoldChartManager {
         this.ema50Series = null;
         this.bbUpperSeries = null;
         this.bbLowerSeries = null;
+        this.latestEma = null;
 
         this.initCharts();
     }
@@ -45,6 +46,7 @@ class GoldChartManager {
                 borderColor: 'rgba(255, 255, 255, 0.1)',
                 timeVisible: true,
                 secondsVisible: false,
+                rightOffset: 6,
             },
         });
 
@@ -57,14 +59,65 @@ class GoldChartManager {
             wickDownColor: '#FF1744',
         });
 
-        // EMAs
-        this.ema9Series = this.chart.addLineSeries({ color: '#FFD700', lineWidth: 1, title: 'EMA 9' });
-        this.ema21Series = this.chart.addLineSeries({ color: '#29B6F6', lineWidth: 1, title: 'EMA 21' });
-        this.ema50Series = this.chart.addLineSeries({ color: '#AB47BC', lineWidth: 2, title: 'EMA 50' });
+        // EMAs (titles and price lines removed to prevent blocking latest candles and markers)
+        this.ema9Series = this.chart.addLineSeries({
+            color: '#FFD700',
+            lineWidth: 1.5,
+            priceLineVisible: false,
+            lastValueVisible: false,
+        });
+        this.ema21Series = this.chart.addLineSeries({
+            color: '#29B6F6',
+            lineWidth: 1.5,
+            priceLineVisible: false,
+            lastValueVisible: false,
+        });
+        this.ema50Series = this.chart.addLineSeries({
+            color: '#AB47BC',
+            lineWidth: 2,
+            priceLineVisible: false,
+            lastValueVisible: false,
+        });
 
         // Bollinger Bands
-        this.bbUpperSeries = this.chart.addLineSeries({ color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1, lineStyle: 2 });
-        this.bbLowerSeries = this.chart.addLineSeries({ color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1, lineStyle: 2 });
+        this.bbUpperSeries = this.chart.addLineSeries({
+            color: 'rgba(255, 255, 255, 0.3)',
+            lineWidth: 1,
+            lineStyle: 2,
+            priceLineVisible: false,
+            lastValueVisible: false,
+        });
+        this.bbLowerSeries = this.chart.addLineSeries({
+            color: 'rgba(255, 255, 255, 0.3)',
+            lineWidth: 1,
+            lineStyle: 2,
+            priceLineVisible: false,
+            lastValueVisible: false,
+        });
+
+        // Crosshair legend handler for live EMA values without obstructing candles
+        this.chart.subscribeCrosshairMove((param) => {
+            if (!param || !param.time || !param.seriesPrices) {
+                this.renderLegend(this.latestEma);
+                return;
+            }
+            const getPrice = (series) => {
+                const val = param.seriesPrices.get(series);
+                if (val == null) return null;
+                if (typeof val === 'number') return val;
+                if (typeof val === 'object' && val.close != null) return val.close;
+                return null;
+            };
+            const e9 = getPrice(this.ema9Series);
+            const e21 = getPrice(this.ema21Series);
+            const e50 = getPrice(this.ema50Series);
+
+            this.renderLegend({
+                ema9: e9 != null ? e9 : (this.latestEma ? this.latestEma.ema9 : null),
+                ema21: e21 != null ? e21 : (this.latestEma ? this.latestEma.ema21 : null),
+                ema50: e50 != null ? e50 : (this.latestEma ? this.latestEma.ema50 : null),
+            });
+        });
 
         // Auto resize
         const resizeHandler = () => {
@@ -176,6 +229,20 @@ class GoldChartManager {
             this.candlestickSeries.setMarkers(markers);
         }
 
+        // Update latest EMA values for overlay legend
+        for (let i = candleData.length - 1; i >= 0; i--) {
+            const item = candleData[i];
+            if (item && (item.ema_9 != null || item.ema_21 != null || item.ema_50 != null)) {
+                this.latestEma = {
+                    ema9: item.ema_9,
+                    ema21: item.ema_21,
+                    ema50: item.ema_50,
+                };
+                this.renderLegend(this.latestEma);
+                break;
+            }
+        }
+
         if (this.chart && this.mainContainer) {
             const w = this.mainContainer.clientWidth;
             const h = this.mainContainer.clientHeight;
@@ -187,10 +254,22 @@ class GoldChartManager {
         this.chart.timeScale().fitContent();
     }
 
+    renderLegend(data) {
+        if (!data) return;
+        const legEMA9 = document.getElementById("legEMA9");
+        const legEMA21 = document.getElementById("legEMA21");
+        const legEMA50 = document.getElementById("legEMA50");
+        if (legEMA9 && data.ema9 != null) legEMA9.textContent = Number(data.ema9).toFixed(2);
+        if (legEMA21 && data.ema21 != null) legEMA21.textContent = Number(data.ema21).toFixed(2);
+        if (legEMA50 && data.ema50 != null) legEMA50.textContent = Number(data.ema50).toFixed(2);
+    }
+
     setEMAVisible(visible) {
         if (this.ema9Series) this.ema9Series.applyOptions({ visible });
         if (this.ema21Series) this.ema21Series.applyOptions({ visible });
         if (this.ema50Series) this.ema50Series.applyOptions({ visible });
+        const legend = document.getElementById("chartLegend");
+        if (legend) legend.style.display = visible ? "flex" : "none";
     }
 
     setBBVisible(visible) {

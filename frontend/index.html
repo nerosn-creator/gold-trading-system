@@ -159,7 +159,7 @@
                         <label class="toggle-switch">
                             <input type="checkbox" id="toggleEMA" checked>
                             <span class="slider"></span>
-                            <span class="toggle-label">EMA (9,21,50)</span>
+                            <span class="toggle-label">EMA (<span style="color:#FFD700; font-weight:700;">9</span>, <span style="color:#29B6F6; font-weight:700;">21</span>, <span style="color:#AB47BC; font-weight:700;">50</span>)</span>
                         </label>
                         <label class="toggle-switch">
                             <input type="checkbox" id="toggleBB" checked>
@@ -175,6 +175,11 @@
                 </div>
 
                 <div class="chart-wrapper">
+                    <div id="chartLegend" class="chart-legend">
+                        <span class="legend-item" style="color: #FFD700;"><i class="fa-solid fa-circle" style="font-size: 7px;"></i> EMA 9: <span id="legEMA9" class="legend-val">--</span></span>
+                        <span class="legend-item" style="color: #29B6F6;"><i class="fa-solid fa-circle" style="font-size: 7px;"></i> EMA 21: <span id="legEMA21" class="legend-val">--</span></span>
+                        <span class="legend-item" style="color: #AB47BC;"><i class="fa-solid fa-circle" style="font-size: 7px;"></i> EMA 50: <span id="legEMA50" class="legend-val">--</span></span>
+                    </div>
                     <div id="candleChartContainer" class="chart-box"></div>
                 </div>
 

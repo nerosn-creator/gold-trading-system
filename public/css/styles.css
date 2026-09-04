@@ -464,6 +464,7 @@ input:checked + .slider:before {
 
 /* Chart Wrapper */
 .chart-wrapper {
+    position: relative;
     width: 100%;
     height: 460px;
     min-height: 400px;
@@ -479,6 +480,39 @@ input:checked + .slider:before {
     min-height: 100%;
     border-radius: 8px;
     overflow: hidden;
+}
+
+/* Floating Chart Legend for EMAs */
+.chart-legend {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    pointer-events: none;
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.chart-legend .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.chart-legend .legend-val {
+    font-family: 'Roboto Mono', 'SF Mono', Consolas, monospace;
+    font-weight: 600;
+    color: #F9FAFB;
 }
 
 /* First Bank Live Quote Iframe Container */
@@ -1601,6 +1635,14 @@ input:checked + .slider:before {
         padding: 6px 8px;
     }
 
+    .chart-legend {
+        top: 10px;
+        left: 12px;
+        font-size: 10px;
+        gap: 8px;
+        padding: 3px 8px;
+    }
+
     .firstbank-iframe-wrapper {
         height: 440px;
     }
@@ -1769,6 +1811,14 @@ input:checked + .slider:before {
         min-height: 320px;
         padding: 4px 6px;
         box-sizing: border-box;
+    }
+
+    .chart-legend {
+        top: 8px;
+        left: 10px;
+        font-size: 9.5px;
+        gap: 6px;
+        padding: 2px 6px;
     }
 
     .native-quote-card {
