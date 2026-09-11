@@ -213,18 +213,14 @@ document.addEventListener("DOMContentLoaded", () => {
             if (fbUsdSell && data.usd_spot_sell) fbUsdSell.textContent = data.usd_spot_sell.toFixed(3);
             if (fbUsdBuy && data.usd_spot_buy) fbUsdBuy.textContent = data.usd_spot_buy.toFixed(3);
 
-            // Sync to Alert Modal if present
-            const modalCurrentSell = document.getElementById("modalCurrentSell");
-            const modalCurrentBuy = document.getElementById("modalCurrentBuy");
-            if (modalCurrentSell && data.gram_sell) {
-                modalCurrentSell.textContent = `NT$ ${data.gram_sell.toLocaleString()} / 公克 (台錢: $${(data.chien_sell || data.gram_sell * 3.75).toLocaleString()})`;
-            }
-            if (modalCurrentBuy && data.gram_buy) {
-                modalCurrentBuy.textContent = `NT$ ${data.gram_buy.toLocaleString()} / 公克 (台錢: $${(data.chien_buy || data.gram_buy * 3.75).toLocaleString()})`;
-            }
-
-            // Cache latest rates in window for instant fill
+            // Cache latest rates in window for instant fill & modal sync
             window._latestFirstBankRates = data;
+
+            // Dynamically refresh Alert Modal live rates
+            if (typeof refreshAlertModalRates === "function") {
+                const curUnit = document.getElementById("alertUnit")?.value || "usd_oz";
+                refreshAlertModalRates(curUnit);
+            }
 
         } catch (e) {
             console.error("Failed to load First Bank gold rates:", e);
@@ -987,6 +983,51 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    function refreshAlertModalRates(unit = "usd_oz") {
+        const data = window._latestFirstBankRates;
+        if (!data) return;
+
+        const modalCurrentSell = document.getElementById("modalCurrentSell");
+        const modalCurrentBuy = document.getElementById("modalCurrentBuy");
+        const modalSubSell = document.getElementById("modalSubSell");
+        const modalSubBuy = document.getElementById("modalSubBuy");
+        const lblTargetPrice = document.getElementById("lblTargetPrice");
+        const targetPriceHint = document.getElementById("targetPriceHint");
+        const alertTargetPrice = document.getElementById("alertTargetPrice");
+
+        if (unit === "usd_oz") {
+            const usdSell = data.usd_gold_sell ? Number(data.usd_gold_sell).toFixed(2) : "--";
+            const usdBuy = data.usd_gold_buy ? Number(data.usd_gold_buy).toFixed(2) : "--";
+            if (modalCurrentSell) modalCurrentSell.textContent = `$${usdSell} 美元 / 盎司`;
+            if (modalCurrentBuy) modalCurrentBuy.textContent = `$${usdBuy} 美元 / 盎司`;
+            if (modalSubSell && data.gram_sell) modalSubSell.textContent = `(折合約 NT$ ${data.gram_sell.toLocaleString()} / 公克)`;
+            if (modalSubBuy && data.gram_buy) modalSubBuy.textContent = `(折合約 NT$ ${data.gram_buy.toLocaleString()} / 公克)`;
+            if (lblTargetPrice) lblTargetPrice.textContent = "買進目標價格 (美元 USD/oz)";
+            if (targetPriceHint) targetPriceHint.textContent = "當一銀官方牌價賣出價跌至或低於此美元價位時發送 Telegram 訊息";
+            if (alertTargetPrice && !alertTargetPrice.value) alertTargetPrice.placeholder = "例: 4300";
+        } else if (unit === "chien") {
+            const chienSell = data.chien_sell || Math.round(data.gram_sell * 3.75);
+            const chienBuy = data.chien_buy || Math.round(data.gram_buy * 3.75);
+            if (modalCurrentSell) modalCurrentSell.textContent = `NT$ ${chienSell.toLocaleString()} / 台錢`;
+            if (modalCurrentBuy) modalCurrentBuy.textContent = `NT$ ${chienBuy.toLocaleString()} / 台錢`;
+            if (modalSubSell && data.gram_sell) modalSubSell.textContent = `(每公克: NT$ ${data.gram_sell.toLocaleString()})`;
+            if (modalSubBuy && data.gram_buy) modalSubBuy.textContent = `(每公克: NT$ ${data.gram_buy.toLocaleString()})`;
+            if (lblTargetPrice) lblTargetPrice.textContent = "買進目標價格 (新臺幣 NT$/台錢)";
+            if (targetPriceHint) targetPriceHint.textContent = "當一銀牌價賣出價跌至或低於此台錢價位時發送 Telegram 訊息";
+            if (alertTargetPrice && !alertTargetPrice.value) alertTargetPrice.placeholder = "例: 16500";
+        } else { // gram
+            if (modalCurrentSell && data.gram_sell) modalCurrentSell.textContent = `NT$ ${data.gram_sell.toLocaleString()} / 公克`;
+            if (modalCurrentBuy && data.gram_buy) modalCurrentBuy.textContent = `NT$ ${data.gram_buy.toLocaleString()} / 公克`;
+            const usdSell = data.usd_gold_sell ? Number(data.usd_gold_sell).toFixed(2) : "--";
+            const usdBuy = data.usd_gold_buy ? Number(data.usd_gold_buy).toFixed(2) : "--";
+            if (modalSubSell) modalSubSell.textContent = `(1盎司: $${usdSell} 美元)`;
+            if (modalSubBuy) modalSubBuy.textContent = `(1盎司: $${usdBuy} 美元)`;
+            if (lblTargetPrice) lblTargetPrice.textContent = "買進目標價格 (新臺幣 NT$/g)";
+            if (targetPriceHint) targetPriceHint.textContent = "當一銀牌價賣出價跌至或低於此公克價位時發送 Telegram 訊息";
+            if (alertTargetPrice && !alertTargetPrice.value) alertTargetPrice.placeholder = "例: 4400";
+        }
+    }
+
     function populateAlertModalUI(settings, rates) {
         if (!settings) return;
         const enabledEl = document.getElementById("alertEnabled");
@@ -997,14 +1038,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const botTokenEl = document.getElementById("alertBotToken");
         const chatIdEl = document.getElementById("alertChatId");
 
+        const curUnit = settings.unit || "usd_oz";
         if (enabledEl) enabledEl.checked = !!settings.enabled;
-        if (unitEl) unitEl.value = settings.unit || "gram";
+        if (unitEl) unitEl.value = curUnit;
         if (comparisonEl) comparisonEl.value = settings.comparison || "lte";
         if (targetPriceEl && settings.target_price) targetPriceEl.value = settings.target_price;
         if (cooldownEl) cooldownEl.value = settings.cooldown_minutes || 30;
         if (botTokenEl) botTokenEl.value = settings.bot_token || "";
         if (chatIdEl) chatIdEl.value = settings.chat_id || "";
 
+        refreshAlertModalRates(curUnit);
         renderAlertHistory(settings.history || []);
     }
 
@@ -1104,6 +1147,13 @@ document.addEventListener("DOMContentLoaded", () => {
             if (price) {
                 alertTargetPrice.value = price;
             }
+        });
+    }
+
+    // Listen to unit dropdown changes
+    if (alertUnit) {
+        alertUnit.addEventListener("change", (e) => {
+            refreshAlertModalRates(e.target.value);
         });
     }
 

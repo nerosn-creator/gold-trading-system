@@ -584,12 +584,14 @@
                 <!-- Current Live Rate Reference -->
                 <div class="alert-live-rate-banner">
                     <div class="rate-item">
-                        <span class="lbl">一銀當前賣出價 (買進適用):</span>
-                        <span id="modalCurrentSell" class="val highlight">NT$ 0 / 公克</span>
+                        <span class="lbl" id="modalLblSell">一銀當前賣出價 (買進適用):</span>
+                        <span id="modalCurrentSell" class="val highlight">$0.00 美元/盎司</span>
+                        <span id="modalSubSell" class="sub-rate" style="font-size: 11px; color: var(--text-muted);">(折合約 NT$ 0 / 公克)</span>
                     </div>
                     <div class="rate-item">
-                        <span class="lbl">一銀當前買入價 (賣出適用):</span>
-                        <span id="modalCurrentBuy" class="val">NT$ 0 / 公克</span>
+                        <span class="lbl" id="modalLblBuy">一銀當前買入價 (賣出適用):</span>
+                        <span id="modalCurrentBuy" class="val">$0.00 美元/盎司</span>
+                        <span id="modalSubBuy" class="sub-rate" style="font-size: 11px; color: var(--text-muted);">(折合約 NT$ 0 / 公克)</span>
                     </div>
                 </div>
 
@@ -624,9 +626,9 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="alertTargetPrice">買進目標價格 (NT$)</label>
+                            <label for="alertTargetPrice" id="lblTargetPrice">買進目標價格 (美元 USD/oz)</label>
                             <div class="input-with-action">
-                                <input type="number" id="alertTargetPrice" class="form-control" placeholder="例: 4400" step="1">
+                                <input type="number" id="alertTargetPrice" class="form-control" placeholder="例: 4300" step="any">
                                 <button type="button" class="btn-fast-fill" id="btnFillCurrent" title="帶入當前價格">帶入現價</button>
                             </div>
                             <small class="form-hint" id="targetPriceHint">當一銀牌價賣出價跌至或低於此價位時發送 Telegram 訊息</small>
