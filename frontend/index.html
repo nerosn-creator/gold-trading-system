@@ -112,6 +112,18 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- First Bank Telegram Buy Alert Button / Badge -->
+                    <div class="firstbank-alert-badge" id="btnOpenAlertModal" role="button" title="點擊設定 Telegram 買進價格通知">
+                        <div class="fb-badge-title">
+                            <i class="fa-brands fa-telegram fb-icon-tg"></i>
+                            <span class="fb-alert-title">買進通知</span>
+                            <span id="alertStatusDot" class="status-dot-pulse inactive"></span>
+                        </div>
+                        <div class="fb-rates-rows">
+                            <span id="alertSummaryText" class="fb-alert-sub">點擊設定目標價</span>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -552,6 +564,145 @@
 
             </aside>
         </main>
+    </div>
+
+    <!-- First Bank Gold Buy Price Telegram Alert Modal -->
+    <div id="firstbankAlertModal" class="gold-modal-overlay">
+        <div class="gold-modal-card">
+            <div class="modal-header">
+                <div class="modal-title-box">
+                    <i class="fa-brands fa-telegram text-tg"></i>
+                    <div>
+                        <h3>第一銀行黃金存摺 買進價格通知 (Telegram)</h3>
+                        <p class="modal-subtitle">當一銀「賣出價」（客戶買進適用價）達到目標時自動推播</p>
+                    </div>
+                </div>
+                <button class="modal-close-btn" id="btnCloseAlertModal" title="關閉">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Current Live Rate Reference -->
+                <div class="alert-live-rate-banner">
+                    <div class="rate-item">
+                        <span class="lbl">一銀當前賣出價 (買進適用):</span>
+                        <span id="modalCurrentSell" class="val highlight">NT$ 0 / 公克</span>
+                    </div>
+                    <div class="rate-item">
+                        <span class="lbl">一銀當前買入價 (賣出適用):</span>
+                        <span id="modalCurrentBuy" class="val">NT$ 0 / 公克</span>
+                    </div>
+                </div>
+
+                <!-- Alert Rules Section -->
+                <div class="alert-form-section">
+                    <div class="switch-row">
+                        <label class="section-title">
+                            <i class="fa-solid fa-power-off"></i> 啟用自動監控與推播
+                        </label>
+                        <label class="switch">
+                            <input type="checkbox" id="alertEnabled">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="alertUnit">計價單位</label>
+                            <select id="alertUnit" class="form-control">
+                                <option value="usd_oz" selected>美元 / 盎司 (USD/oz)</option>
+                                <option value="gram">新臺幣 / 公克 (NT$/g)</option>
+                                <option value="chien">新臺幣 / 台錢 (NT$/錢)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="alertComparison">觸發條件</label>
+                            <select id="alertComparison" class="form-control">
+                                <option value="lte">一銀賣出價 ≤ 目標價 (逢低買進時機，推薦)</option>
+                                <option value="gte">一銀賣出價 ≥ 目標價 (突破或追價)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="alertTargetPrice">買進目標價格 (NT$)</label>
+                            <div class="input-with-action">
+                                <input type="number" id="alertTargetPrice" class="form-control" placeholder="例: 4400" step="1">
+                                <button type="button" class="btn-fast-fill" id="btnFillCurrent" title="帶入當前價格">帶入現價</button>
+                            </div>
+                            <small class="form-hint" id="targetPriceHint">當一銀牌價賣出價跌至或低於此價位時發送 Telegram 訊息</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="alertCooldown">防洗版冷卻時間 (分鐘)</label>
+                            <input type="number" id="alertCooldown" class="form-control" value="30" min="5" max="1440">
+                            <small class="form-hint">觸發一次後暫停推播此分鐘數，避免牌價跳動重複轟炸</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Telegram Credentials Section -->
+                <div class="alert-form-section tg-section">
+                    <div class="section-title">
+                        <i class="fa-solid fa-robot"></i> Telegram 機器人連線資訊
+                    </div>
+
+                    <div class="form-group">
+                        <label for="alertBotToken">Telegram Bot Token (機器人密鑰)</label>
+                        <div class="input-with-action">
+                            <input type="password" id="alertBotToken" class="form-control" placeholder="例: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ">
+                            <button type="button" class="btn-toggle-eye" id="btnToggleTokenEye">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="alertChatId">Telegram Chat ID (接收通知的對話或群組 ID)</label>
+                        <input type="text" id="alertChatId" class="form-control" placeholder="例: 987654321 或 -100xxxxxxxxxx">
+                    </div>
+
+                    <!-- Telegram Setup Guide Toggle -->
+                    <div class="tg-guide-box">
+                        <div class="tg-guide-header" id="btnToggleGuide">
+                            <span><i class="fa-solid fa-circle-question"></i> 如何取得 Bot Token 與 Chat ID？</span>
+                            <i class="fa-solid fa-chevron-down" id="guideArrow"></i>
+                        </div>
+                        <div class="tg-guide-content" id="tgGuideContent" style="display: none;">
+                            <ol>
+                                <li>在 Telegram 搜尋 <b>@BotFather</b>，發送 <code>/newbot</code>，依照指示設定名稱與帳號，即可獲得 <code>HTTP API Token</code>。</li>
+                                <li>點擊 BotFather 給的連結，在 Telegram 搜尋您的機器人名稱並點擊 <b>Start</b> 開啟對話（務必先點 Start，機器人才有權限推播訊息給您！）。</li>
+                                <li>在 Telegram 搜尋 <b>@userinfobot</b>，發送任意訊息即可看到您的 <code>Id</code>，該數字即為您的 <b>Chat ID</b>。</li>
+                                <li>若要發送到群組，將機器人邀請加入群組並給予發言權限，Chat ID 填入該群組 ID（通常為負數）。</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="test-btn-box">
+                        <button type="button" class="btn-test-tg" id="btnTestTelegram">
+                            <i class="fa-solid fa-paper-plane"></i> 📨 立即發送測試訊息到 Telegram
+                        </button>
+                        <div id="testResultMsg" class="test-result-msg"></div>
+                    </div>
+                </div>
+
+                <!-- Trigger History -->
+                <div class="alert-form-section history-section">
+                    <div class="section-title">
+                        <i class="fa-solid fa-clock-rotate-left"></i> 最近觸發推播紀錄
+                    </div>
+                    <div id="alertHistoryList" class="alert-history-list">
+                        <div class="empty-hint" style="color: var(--text-dim); font-size: 11px; text-align: center; padding: 6px;">尚無觸發紀錄</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="btnCancelAlert">關閉</button>
+                <button type="button" class="btn-primary" id="btnSaveAlert">
+                    <i class="fa-solid fa-floppy-disk"></i> 儲存並套用設定
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Custom App Logic -->

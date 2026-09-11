@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "bot_token": "8661051420:AAH9_bcBrwudI_nqa0f0AVonO5P9t25Lnpo",
+  "chat_id": "5917151288",
+  "unit": "usd_oz",
+  "target_price": 4300.0,
+  "comparison": "lte",
+  "cooldown_minutes": 30,
+  "last_triggered_at": null,
+  "last_triggered_price": null,
+  "history": []
+}

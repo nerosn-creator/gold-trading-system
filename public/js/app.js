@@ -150,6 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadOptimizationStatus();
     loadFirstBankRates();
     loadSpotQuoteBoard();
+    loadAlertSettings();
 
     // Auto polling every 15 seconds
     setInterval(() => {
@@ -160,6 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loadOptimizationStatus();
         loadFirstBankRates();
         loadSpotQuoteBoard();
+        loadAlertSettings(true);
     }, 15000);
 
     async function loadDashboardData(silent = false) {
@@ -210,6 +212,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (fbUsdSell && data.usd_spot_sell) fbUsdSell.textContent = data.usd_spot_sell.toFixed(3);
             if (fbUsdBuy && data.usd_spot_buy) fbUsdBuy.textContent = data.usd_spot_buy.toFixed(3);
+
+            // Sync to Alert Modal if present
+            const modalCurrentSell = document.getElementById("modalCurrentSell");
+            const modalCurrentBuy = document.getElementById("modalCurrentBuy");
+            if (modalCurrentSell && data.gram_sell) {
+                modalCurrentSell.textContent = `NT$ ${data.gram_sell.toLocaleString()} / 公克 (台錢: $${(data.chien_sell || data.gram_sell * 3.75).toLocaleString()})`;
+            }
+            if (modalCurrentBuy && data.gram_buy) {
+                modalCurrentBuy.textContent = `NT$ ${data.gram_buy.toLocaleString()} / 公克 (台錢: $${(data.chien_buy || data.gram_buy * 3.75).toLocaleString()})`;
+            }
+
+            // Cache latest rates in window for instant fill
+            window._latestFirstBankRates = data;
 
         } catch (e) {
             console.error("Failed to load First Bank gold rates:", e);
@@ -923,5 +938,275 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (e) {
             console.error("AI Optimization failed:", e);
         }
+    }
+
+    /* ===================================================
+       First Bank Gold Buy-Price Telegram Alert System
+       =================================================== */
+    let currentAlertSettings = null;
+
+    async function loadAlertSettings(silent = false) {
+        try {
+            const res = await fetch("/api/alerts/settings");
+            const data = await res.json();
+            if (!data || data.status !== "SUCCESS") return;
+
+            currentAlertSettings = data.settings;
+            updateAlertBadgeUI(data.settings, data.current_rates);
+            if (!silent) {
+                populateAlertModalUI(data.settings, data.current_rates);
+            }
+        } catch (e) {
+            if (!silent) console.error("Failed to load alert settings:", e);
+        }
+    }
+
+    function updateAlertBadgeUI(settings, rates) {
+        const dot = document.getElementById("alertStatusDot");
+        const sub = document.getElementById("alertSummaryText");
+        if (!dot || !sub) return;
+
+        if (settings && settings.enabled && settings.target_price > 0) {
+            dot.className = "status-dot-pulse active";
+            let unitText = "g";
+            let currSym = "NT$ ";
+            if (settings.unit === "usd_oz") {
+                unitText = "oz(美元)";
+                currSym = "$";
+            } else if (settings.unit === "chien") {
+                unitText = "錢";
+                currSym = "NT$ ";
+            }
+            const sym = settings.comparison === "gte" ? "≥" : "≤";
+            sub.textContent = `監控中: ${sym} ${currSym}${Number(settings.target_price).toLocaleString()}/${unitText}`;
+            sub.style.color = "#00E676";
+        } else {
+            dot.className = "status-dot-pulse inactive";
+            sub.textContent = "點擊設定目標價";
+            sub.style.color = "#B3E5FC";
+        }
+    }
+
+    function populateAlertModalUI(settings, rates) {
+        if (!settings) return;
+        const enabledEl = document.getElementById("alertEnabled");
+        const unitEl = document.getElementById("alertUnit");
+        const comparisonEl = document.getElementById("alertComparison");
+        const targetPriceEl = document.getElementById("alertTargetPrice");
+        const cooldownEl = document.getElementById("alertCooldown");
+        const botTokenEl = document.getElementById("alertBotToken");
+        const chatIdEl = document.getElementById("alertChatId");
+
+        if (enabledEl) enabledEl.checked = !!settings.enabled;
+        if (unitEl) unitEl.value = settings.unit || "gram";
+        if (comparisonEl) comparisonEl.value = settings.comparison || "lte";
+        if (targetPriceEl && settings.target_price) targetPriceEl.value = settings.target_price;
+        if (cooldownEl) cooldownEl.value = settings.cooldown_minutes || 30;
+        if (botTokenEl) botTokenEl.value = settings.bot_token || "";
+        if (chatIdEl) chatIdEl.value = settings.chat_id || "";
+
+        renderAlertHistory(settings.history || []);
+    }
+
+    function renderAlertHistory(history) {
+        const listEl = document.getElementById("alertHistoryList");
+        if (!listEl) return;
+        if (!history || history.length === 0) {
+            listEl.innerHTML = '<div class="empty-hint" style="color: var(--text-dim); font-size: 11px; text-align: center; padding: 6px;">尚無觸發紀錄</div>';
+            return;
+        }
+
+        listEl.innerHTML = history.map(h => {
+            const cls = h.success ? "" : "failed";
+            const sym = h.comparison === "gte" ? "≥" : "≤";
+            return `
+                <div class="alert-history-item ${cls}">
+                    <span><b>${h.timestamp}</b> 觸發: 牌價 NT$ ${Number(h.current_price).toLocaleString()} (${sym} 目標 NT$ ${Number(h.target_price).toLocaleString()})</span>
+                    <span style="color: ${h.success ? '#00E676' : '#FF5252'}; font-weight: 600;">${h.detail}</span>
+                </div>
+            `;
+        }).join("");
+    }
+
+    // Modal Events
+    const alertModal = document.getElementById("firstbankAlertModal");
+    const btnOpenAlertModal = document.getElementById("btnOpenAlertModal");
+    const btnCloseAlertModal = document.getElementById("btnCloseAlertModal");
+    const btnCancelAlert = document.getElementById("btnCancelAlert");
+
+    function openAlertModal() {
+        if (alertModal) {
+            alertModal.style.display = "flex";
+            setTimeout(() => alertModal.classList.add("open"), 10);
+            loadAlertSettings(false);
+        }
+    }
+
+    function closeAlertModal() {
+        if (alertModal) {
+            alertModal.classList.remove("open");
+            setTimeout(() => alertModal.style.display = "none", 250);
+            const msgEl = document.getElementById("testResultMsg");
+            if (msgEl) msgEl.textContent = "";
+        }
+    }
+
+    if (btnOpenAlertModal) btnOpenAlertModal.addEventListener("click", openAlertModal);
+    if (btnCloseAlertModal) btnCloseAlertModal.addEventListener("click", closeAlertModal);
+    if (btnCancelAlert) btnCancelAlert.addEventListener("click", closeAlertModal);
+
+    if (alertModal) {
+        alertModal.addEventListener("click", (e) => {
+            if (e.target === alertModal) closeAlertModal();
+        });
+    }
+
+    // Toggle Guide
+    const btnToggleGuide = document.getElementById("btnToggleGuide");
+    const tgGuideContent = document.getElementById("tgGuideContent");
+    const guideArrow = document.getElementById("guideArrow");
+    if (btnToggleGuide && tgGuideContent) {
+        btnToggleGuide.addEventListener("click", () => {
+            const isHidden = tgGuideContent.style.display === "none";
+            tgGuideContent.style.display = isHidden ? "block" : "none";
+            if (guideArrow) {
+                guideArrow.className = isHidden ? "fa-solid fa-chevron-up" : "fa-solid fa-chevron-down";
+            }
+        });
+    }
+
+    // Toggle Token Eye
+    const btnToggleTokenEye = document.getElementById("btnToggleTokenEye");
+    const alertBotToken = document.getElementById("alertBotToken");
+    if (btnToggleTokenEye && alertBotToken) {
+        btnToggleTokenEye.addEventListener("click", () => {
+            const isPwd = alertBotToken.type === "password";
+            alertBotToken.type = isPwd ? "text" : "password";
+            btnToggleTokenEye.innerHTML = isPwd ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+        });
+    }
+
+    // Fast Fill Current Price
+    const btnFillCurrent = document.getElementById("btnFillCurrent");
+    const alertTargetPrice = document.getElementById("alertTargetPrice");
+    const alertUnit = document.getElementById("alertUnit");
+    if (btnFillCurrent && alertTargetPrice) {
+        btnFillCurrent.addEventListener("click", () => {
+            const rates = window._latestFirstBankRates;
+            if (!rates) {
+                alert("正在獲取第一銀行牌價，請稍候...");
+                return;
+            }
+            const unit = alertUnit ? alertUnit.value : "usd_oz";
+            let price = rates.usd_gold_sell;
+            if (unit === "chien") price = rates.chien_sell;
+            else if (unit === "gram") price = rates.gram_sell;
+            if (price) {
+                alertTargetPrice.value = price;
+            }
+        });
+    }
+
+    // Test Telegram Notification
+    const btnTestTelegram = document.getElementById("btnTestTelegram");
+    const testResultMsg = document.getElementById("testResultMsg");
+    if (btnTestTelegram) {
+        btnTestTelegram.addEventListener("click", async () => {
+            const token = document.getElementById("alertBotToken")?.value?.trim();
+            const chat = document.getElementById("alertChatId")?.value?.trim();
+
+            if (!token || !chat) {
+                if (testResultMsg) {
+                    testResultMsg.className = "test-result-msg error";
+                    testResultMsg.textContent = "❌ 請先填寫 Telegram Bot Token 與 Chat ID！";
+                }
+                return;
+            }
+
+            btnTestTelegram.disabled = true;
+            btnTestTelegram.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在發送測試推播...';
+            if (testResultMsg) testResultMsg.textContent = "";
+
+            try {
+                const res = await fetch("/api/alerts/test", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ bot_token: token, chat_id: chat })
+                });
+                const data = await res.json();
+
+                if (data.status === "SUCCESS") {
+                    testResultMsg.className = "test-result-msg success";
+                    testResultMsg.innerHTML = '✅ <b>測試訊息發送成功！</b>請查看您的 Telegram。';
+                } else {
+                    testResultMsg.className = "test-result-msg error";
+                    testResultMsg.textContent = `❌ 發送失敗: ${data.message || '未知錯誤'}`;
+                }
+            } catch (e) {
+                testResultMsg.className = "test-result-msg error";
+                testResultMsg.textContent = `❌ 連線伺服器異常: ${e.message}`;
+            } finally {
+                btnTestTelegram.disabled = false;
+                btnTestTelegram.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 📨 立即發送測試訊息到 Telegram';
+            }
+        });
+    }
+
+    // Save Alert Settings
+    const btnSaveAlert = document.getElementById("btnSaveAlert");
+    if (btnSaveAlert) {
+        btnSaveAlert.addEventListener("click", async () => {
+            const enabled = document.getElementById("alertEnabled")?.checked || false;
+            const unit = document.getElementById("alertUnit")?.value || "gram";
+            const comparison = document.getElementById("alertComparison")?.value || "lte";
+            const target_price = parseFloat(document.getElementById("alertTargetPrice")?.value || 0);
+            const cooldown_minutes = parseInt(document.getElementById("alertCooldown")?.value || 30);
+            const bot_token = document.getElementById("alertBotToken")?.value?.trim() || "";
+            const chat_id = document.getElementById("alertChatId")?.value?.trim() || "";
+
+            if (enabled) {
+                if (target_price <= 0) {
+                    alert("請輸入有效的買進目標價格！");
+                    return;
+                }
+                if (!bot_token || !chat_id) {
+                    alert("啟用推播時，必須填寫 Telegram Bot Token 與 Chat ID！");
+                    return;
+                }
+            }
+
+            btnSaveAlert.disabled = true;
+            btnSaveAlert.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 儲存中...';
+
+            try {
+                const res = await fetch("/api/alerts/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        enabled,
+                        unit,
+                        comparison,
+                        target_price,
+                        cooldown_minutes,
+                        bot_token,
+                        chat_id
+                    })
+                });
+                const data = await res.json();
+
+                if (data.status === "SUCCESS") {
+                    alert("一銀黃金價格警報通知設定已成功儲存！");
+                    loadAlertSettings(false);
+                    closeAlertModal();
+                } else {
+                    alert(`儲存失敗: ${data.message || '未知錯誤'}`);
+                }
+            } catch (e) {
+                alert(`儲存設定時連線錯誤: ${e.message}`);
+            } finally {
+                btnSaveAlert.disabled = false;
+                btnSaveAlert.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 儲存並套用設定';
+            }
+        });
     }
 });

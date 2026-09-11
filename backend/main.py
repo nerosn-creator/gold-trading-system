@@ -5,7 +5,7 @@ import pandas as pd
 # Add current directory to sys.path for relative imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -16,10 +16,16 @@ from indicator_engine import calculate_indicators
 from signal_generator import generate_signals, get_latest_signal_summary
 from backtester import run_backtest
 from events_service import get_daily_gold_events
-
-
+import alert_service
 
 app = FastAPI(title="Gold Trading Signal System API", version="1.0.0")
+
+@app.on_event("startup")
+def startup_event():
+    try:
+        alert_service.start_alert_monitor()
+    except Exception as e:
+        print(f"Failed to start alert monitor: {e}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -177,6 +183,75 @@ def api_get_firstbank_rates(symbol: str = "XAUUSD"):
     df = get_gold_candles(symbol, "1m")
     current_price = float(df.iloc[-1]['close']) if not df.empty else 4450.0
     return fetch_firstbank_gold_rates(current_price)
+
+@app.get("/api/alerts/settings")
+def api_get_alert_settings():
+    """Get current First Bank gold alert settings and current market prices."""
+    settings = alert_service.load_alert_settings()
+    from firstbank_gold import fetch_firstbank_gold_rates
+    try:
+        current_rates = fetch_firstbank_gold_rates()
+    except Exception:
+        current_rates = {}
+    return {
+        "status": "SUCCESS",
+        "settings": settings,
+        "current_rates": current_rates
+    }
+
+@app.post("/api/alerts/settings")
+async def api_save_alert_settings(request: Request):
+    """Save First Bank gold price alert settings."""
+    data = await request.json()
+    settings = alert_service.load_alert_settings()
+    for field in ["enabled", "bot_token", "chat_id", "unit", "target_price", "comparison", "cooldown_minutes"]:
+        if field in data:
+            settings[field] = data[field]
+    alert_service.save_alert_settings(settings)
+
+    if settings.get("enabled"):
+        alert_service.start_alert_monitor()
+        from firstbank_gold import fetch_firstbank_gold_rates
+        try:
+            rates = fetch_firstbank_gold_rates()
+            alert_service.evaluate_and_notify(rates)
+        except Exception:
+            pass
+
+    return {
+        "status": "SUCCESS",
+        "message": "一銀黃金價格警報通知設定已成功儲存！",
+        "settings": settings
+    }
+
+@app.post("/api/alerts/test")
+async def api_test_alert_telegram(request: Request):
+    """Test send a verification notification to the specified Telegram Bot/Chat."""
+    data = await request.json()
+    bot_token = data.get("bot_token")
+    chat_id = data.get("chat_id")
+    if not bot_token or not chat_id:
+        settings = alert_service.load_alert_settings()
+        bot_token = bot_token or settings.get("bot_token")
+        chat_id = chat_id or settings.get("chat_id")
+
+    if not bot_token or not chat_id:
+        return {"status": "ERROR", "message": "請先填寫 Telegram Bot Token 與 Chat ID！"}
+
+    success, msg = alert_service.send_test_telegram(bot_token, chat_id)
+    return {
+        "status": "SUCCESS" if success else "ERROR",
+        "message": msg
+    }
+
+@app.get("/api/alerts/history")
+def api_get_alert_history():
+    """Get history of triggered alerts."""
+    settings = alert_service.load_alert_settings()
+    return {
+        "status": "SUCCESS",
+        "history": settings.get("history", [])
+    }
 
 @app.get("/api/gold/spot_quote")
 def api_get_spot_quote(symbol: str = "XAUUSD"):
