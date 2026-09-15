@@ -155,14 +155,15 @@ def evaluate_and_notify(rates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     # Condition check
     condition_met = False
     condition_text = ""
+    target_str = f"{target_price:,.2f}" if unit == "usd_oz" else f"{target_price:,.0f}"
     if comparison == "lte":
         if current_price <= target_price:
             condition_met = True
-            condition_text = f"≤ 目標價 {curr_symbol}{target_price:,.2f if unit == 'usd_oz' else target_price:,.0f} (逢低買進時機)"
+            condition_text = f"≤ 目標價 {curr_symbol}{target_str} (逢低買進時機)"
     else:
         if current_price >= target_price:
             condition_met = True
-            condition_text = f"≥ 目標價 {curr_symbol}{target_price:,.2f if unit == 'usd_oz' else target_price:,.0f}"
+            condition_text = f"≥ 目標價 {curr_symbol}{target_str}"
 
     if not condition_met:
         return None

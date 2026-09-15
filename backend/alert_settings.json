@@ -6,7 +6,18 @@
   "target_price": 4300.0,
   "comparison": "lte",
   "cooldown_minutes": 30,
-  "last_triggered_at": null,
-  "last_triggered_price": null,
-  "history": []
+  "last_triggered_at": "2026-09-15 18:39:01",
+  "last_triggered_price": 4297.2,
+  "history": [
+    {
+      "timestamp": "2026-09-15 18:39:01",
+      "unit": "美元/盎司",
+      "current_price": 4297.2,
+      "target_price": 4300.0,
+      "comparison": "lte",
+      "success": true,
+      "detail": "發送成功"
+    }
+  ],
+  "last_triggered_timestamp": 1789468741.5083425
 }

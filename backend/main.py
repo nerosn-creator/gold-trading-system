@@ -182,7 +182,12 @@ def api_get_firstbank_rates(symbol: str = "XAUUSD"):
     from firstbank_gold import fetch_firstbank_gold_rates
     df = get_gold_candles(symbol, "1m")
     current_price = float(df.iloc[-1]['close']) if not df.empty else 4450.0
-    return fetch_firstbank_gold_rates(current_price)
+    rates = fetch_firstbank_gold_rates(current_price)
+    try:
+        alert_service.evaluate_and_notify(rates)
+    except Exception as e:
+        print(f"Alert evaluate error: {e}")
+    return rates
 
 @app.get("/api/alerts/settings")
 def api_get_alert_settings():
