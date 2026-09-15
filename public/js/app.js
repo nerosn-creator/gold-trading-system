@@ -942,18 +942,37 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentAlertSettings = null;
 
     async function loadAlertSettings(silent = false) {
+        let localCfg = null;
+        try {
+            const raw = localStorage.getItem("gold_alert_settings");
+            if (raw) localCfg = JSON.parse(raw);
+        } catch (e) {}
+
         try {
             const res = await fetch("/api/alerts/settings");
             const data = await res.json();
-            if (!data || data.status !== "SUCCESS") return;
-
-            currentAlertSettings = data.settings;
-            updateAlertBadgeUI(data.settings, data.current_rates);
-            if (!silent) {
-                populateAlertModalUI(data.settings, data.current_rates);
+            if (data && data.status === "SUCCESS") {
+                let mergedSettings = { ...data.settings };
+                if (localCfg) {
+                    mergedSettings = { ...mergedSettings, ...localCfg };
+                }
+                currentAlertSettings = mergedSettings;
+                updateAlertBadgeUI(mergedSettings, data.current_rates);
+                if (!silent) {
+                    populateAlertModalUI(mergedSettings, data.current_rates);
+                }
+                return;
             }
         } catch (e) {
-            if (!silent) console.error("Failed to load alert settings:", e);
+            if (!silent) console.error("Failed to load alert settings from API:", e);
+        }
+
+        if (localCfg) {
+            currentAlertSettings = localCfg;
+            updateAlertBadgeUI(localCfg, window._latestFirstBankRates);
+            if (!silent) {
+                populateAlertModalUI(localCfg, window._latestFirstBankRates);
+            }
         }
     }
 
@@ -1225,6 +1244,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
 
+            const payload = {
+                enabled,
+                unit,
+                comparison,
+                target_price,
+                cooldown_minutes,
+                bot_token,
+                chat_id
+            };
+
+            // Immediately persist in local browser storage and refresh badge
+            try {
+                localStorage.setItem("gold_alert_settings", JSON.stringify(payload));
+            } catch (e) {}
+            currentAlertSettings = payload;
+            updateAlertBadgeUI(payload, window._latestFirstBankRates);
+
             btnSaveAlert.disabled = true;
             btnSaveAlert.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 儲存中...';
 
@@ -1232,15 +1268,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const res = await fetch("/api/alerts/settings", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        enabled,
-                        unit,
-                        comparison,
-                        target_price,
-                        cooldown_minutes,
-                        bot_token,
-                        chat_id
-                    })
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json();
 

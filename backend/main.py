@@ -183,10 +183,6 @@ def api_get_firstbank_rates(symbol: str = "XAUUSD"):
     df = get_gold_candles(symbol, "1m")
     current_price = float(df.iloc[-1]['close']) if not df.empty else 4450.0
     rates = fetch_firstbank_gold_rates(current_price)
-    try:
-        alert_service.evaluate_and_notify(rates)
-    except Exception as e:
-        print(f"Alert evaluate error: {e}")
     return rates
 
 @app.get("/api/alerts/settings")
@@ -216,12 +212,8 @@ async def api_save_alert_settings(request: Request):
 
     if settings.get("enabled"):
         alert_service.start_alert_monitor()
-        from firstbank_gold import fetch_firstbank_gold_rates
-        try:
-            rates = fetch_firstbank_gold_rates()
-            alert_service.evaluate_and_notify(rates)
-        except Exception:
-            pass
+    else:
+        alert_service.stop_alert_monitor()
 
     return {
         "status": "SUCCESS",

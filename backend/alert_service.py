@@ -36,35 +36,55 @@ def default_alert_settings() -> Dict[str, Any]:
         "history": []
     }
 
+_memory_settings: Optional[Dict[str, Any]] = None
+
 def load_alert_settings() -> Dict[str, Any]:
+    global _memory_settings
     default_cfg = default_alert_settings()
-    for target in [SETTINGS_FILE, TMP_SETTINGS_FILE]:
-        if os.path.exists(target):
-            try:
-                with open(target, "r", encoding="utf-8") as f:
-                    saved = json.load(f)
-                    default_cfg.update(saved)
-                    return default_cfg
-            except Exception as e:
-                logger.error(f"Failed to read alert settings from {target}: {e}")
+    
+    # 1. Base from repository SETTINGS_FILE
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                default_cfg.update(saved)
+        except Exception as e:
+            logger.error(f"Failed to read alert settings from {SETTINGS_FILE}: {e}")
+
+    # 2. Serverless/local runtime override from TMP_SETTINGS_FILE
+    if os.path.exists(TMP_SETTINGS_FILE):
+        try:
+            with open(TMP_SETTINGS_FILE, "r", encoding="utf-8") as f:
+                tmp_saved = json.load(f)
+                default_cfg.update(tmp_saved)
+        except Exception as e:
+            logger.error(f"Failed to read alert settings from {TMP_SETTINGS_FILE}: {e}")
+
+    # 3. Active in-memory override (highest priority)
+    if _memory_settings is not None:
+        default_cfg.update(_memory_settings)
+
     return default_cfg
 
 def save_alert_settings(settings: Dict[str, Any]) -> bool:
+    global _memory_settings
+    _memory_settings = dict(settings)
     saved = False
     try:
         with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
             json.dump(settings, f, indent=2, ensure_ascii=False)
         saved = True
     except Exception as e:
-        logger.warning(f"Cannot save settings to {SETTINGS_FILE}: {e}")
+        logger.warning(f"Cannot save settings to {SETTINGS_FILE} (expected on serverless): {e}")
 
-    if not saved:
-        try:
-            with open(TMP_SETTINGS_FILE, "w", encoding="utf-8") as f:
-                json.dump(settings, f, indent=2, ensure_ascii=False)
-            saved = True
-        except Exception as e:
-            logger.error(f"Cannot save settings to {TMP_SETTINGS_FILE}: {e}")
+    # Always write to TMP_SETTINGS_FILE as well for runtime persistence
+    try:
+        with open(TMP_SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(settings, f, indent=2, ensure_ascii=False)
+        saved = True
+    except Exception as e:
+        logger.error(f"Cannot save settings to {TMP_SETTINGS_FILE}: {e}")
+
     return saved
 
 def send_telegram_message(bot_token: str, chat_id: str, message: str, parse_mode: str = "HTML") -> Tuple[bool, str]:
