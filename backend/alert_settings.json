@@ -6,6 +6,9 @@
   "target_price": 4300.0,
   "comparison": "lte",
   "cooldown_minutes": 360,
+  "quiet_hours_enabled": true,
+  "quiet_hours_start": "18:00",
+  "quiet_hours_end": "08:00",
   "last_triggered_at": "2026-09-15 19:40:08",
   "last_triggered_price": 4297.2,
   "history": [

@@ -1066,6 +1066,21 @@ document.addEventListener("DOMContentLoaded", () => {
         if (botTokenEl) botTokenEl.value = settings.bot_token || "";
         if (chatIdEl) chatIdEl.value = settings.chat_id || "";
 
+        const quietEnabledEl = document.getElementById("alertQuietHoursEnabled");
+        const quietStartEl = document.getElementById("alertQuietStart");
+        const quietEndEl = document.getElementById("alertQuietEnd");
+        const quietInputsContainer = document.getElementById("quietHoursTimeInputs");
+
+        if (quietEnabledEl) {
+            quietEnabledEl.checked = settings.quiet_hours_enabled !== false;
+            if (quietInputsContainer) {
+                quietInputsContainer.style.opacity = quietEnabledEl.checked ? "1.0" : "0.4";
+                quietInputsContainer.style.pointerEvents = quietEnabledEl.checked ? "auto" : "none";
+            }
+        }
+        if (quietStartEl) quietStartEl.value = settings.quiet_hours_start || "18:00";
+        if (quietEndEl) quietEndEl.value = settings.quiet_hours_end || "08:00";
+
         refreshAlertModalRates(curUnit);
         renderAlertHistory(settings.history || []);
     }
@@ -1221,6 +1236,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Quiet hours toggle listener
+    const alertQuietHoursEnabled = document.getElementById("alertQuietHoursEnabled");
+    if (alertQuietHoursEnabled) {
+        alertQuietHoursEnabled.addEventListener("change", (e) => {
+            const container = document.getElementById("quietHoursTimeInputs");
+            if (container) {
+                container.style.opacity = e.target.checked ? "1.0" : "0.4";
+                container.style.pointerEvents = e.target.checked ? "auto" : "none";
+            }
+        });
+    }
+
     // Save Alert Settings
     const btnSaveAlert = document.getElementById("btnSaveAlert");
     if (btnSaveAlert) {
@@ -1230,6 +1257,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const comparison = document.getElementById("alertComparison")?.value || "lte";
             const target_price = parseFloat(document.getElementById("alertTargetPrice")?.value || 0);
             const cooldown_minutes = parseInt(document.getElementById("alertCooldown")?.value || 30);
+            const quiet_hours_enabled = document.getElementById("alertQuietHoursEnabled")?.checked ?? true;
+            const quiet_hours_start = document.getElementById("alertQuietStart")?.value || "18:00";
+            const quiet_hours_end = document.getElementById("alertQuietEnd")?.value || "08:00";
             const bot_token = document.getElementById("alertBotToken")?.value?.trim() || "";
             const chat_id = document.getElementById("alertChatId")?.value?.trim() || "";
 
@@ -1250,6 +1280,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 comparison,
                 target_price,
                 cooldown_minutes,
+                quiet_hours_enabled,
+                quiet_hours_start,
+                quiet_hours_end,
                 bot_token,
                 chat_id
             };

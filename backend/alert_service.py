@@ -31,10 +31,50 @@ def default_alert_settings() -> Dict[str, Any]:
         "target_price": 4400.0,     # 目標買進價格
         "comparison": "lte",        # "lte": 賣出價 <= 目標價 (逢低買進); "gte": 賣出價 >= 目標價
         "cooldown_minutes": 30,     # 觸發後防洗版冷卻時間 (分鐘)
+        "quiet_hours_enabled": True,# 夜間勿擾模式 (預設 18:00 ~ 08:00 不通知)
+        "quiet_hours_start": "18:00",
+        "quiet_hours_end": "08:00",
         "last_triggered_at": None,
         "last_triggered_price": None,
         "history": []
     }
+
+def is_in_quiet_hours(settings: Dict[str, Any]) -> Tuple[bool, str]:
+    """
+    Checks if current Taipei time falls within quiet hours (default: 18:00 ~ 08:00 next day).
+    """
+    if not settings.get("quiet_hours_enabled", True):
+        return False, ""
+
+    start_str = settings.get("quiet_hours_start", "18:00") or "18:00"
+    end_str = settings.get("quiet_hours_end", "08:00") or "08:00"
+
+    try:
+        tz = pytz.timezone('Asia/Taipei')
+        now_dt = datetime.now(tz)
+    except Exception:
+        now_dt = datetime.now()
+
+    try:
+        start_h, start_m = map(int, start_str.strip().split(":"))
+        end_h, end_m = map(int, end_str.strip().split(":"))
+
+        curr_val = now_dt.hour * 60 + now_dt.minute
+        start_val = start_h * 60 + start_m
+        end_val = end_h * 60 + end_m
+
+        # If start_val > end_val, spans across midnight (e.g. 18:00 -> 08:00)
+        if start_val > end_val:
+            in_quiet = (curr_val >= start_val or curr_val < end_val)
+        else:
+            in_quiet = (start_val <= curr_val < end_val)
+
+        if in_quiet:
+            return True, f"目前為夜間勿擾時段 ({start_str} ~ 隔天 {end_str})，暫停發送通知"
+        return False, ""
+    except Exception as e:
+        logger.error(f"Failed to parse quiet hours: {e}")
+        return False, ""
 
 _memory_settings: Optional[Dict[str, Any]] = None
 
@@ -119,11 +159,15 @@ def send_test_telegram(bot_token: str, chat_id: str) -> Tuple[bool, str]:
     Sends a test ping to verify user's Telegram credentials.
     """
     now_time = get_kh_time_str()
+    settings = load_alert_settings()
+    q_status = f"已啟用 ({settings.get('quiet_hours_start', '18:00')} ~ 隔天 {settings.get('quiet_hours_end', '08:00')} 暫停推播)" if settings.get("quiet_hours_enabled", True) else "未啟用"
+
     msg = (
         f"<b>🔔 【第一銀行黃金存摺 警報系統測試】</b>\n\n"
         f"恭喜！您的 Telegram Bot 已成功連線至<b>黃金交易量化系統</b>。\n\n"
         f"• <b>測試時間</b>: {now_time}\n"
         f"• <b>連線狀態</b>: 正常在線 (Online)\n"
+        f"• <b>夜間勿擾保護</b>: {q_status}\n"
         f"• <b>說明</b>: 當第一銀行黃金賣出價達到您設定的買進門檻時，機器人將立即在此推播通知。\n\n"
         f"<i>💡 溫馨提醒：請保持此對話開啟，隨時接收最新行情通知。</i>"
     )
@@ -132,7 +176,7 @@ def send_test_telegram(bot_token: str, chat_id: str) -> Tuple[bool, str]:
 def evaluate_and_notify(rates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     Evaluates current First Bank gold rates against user alert settings.
-    If conditions are met and outside cooldown, sends Telegram notification.
+    If conditions are met, outside quiet hours and cooldown, sends Telegram notification.
     """
     settings = load_alert_settings()
     if not settings.get("enabled"):
@@ -188,6 +232,12 @@ def evaluate_and_notify(rates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if not condition_met:
         return None
 
+    # Check Quiet Hours (夜間勿擾限制: 預設 18:00 ~ 隔天 08:00 不發通知)
+    in_quiet, quiet_desc = is_in_quiet_hours(settings)
+    if in_quiet:
+        logger.info(f"Price condition met but notification withheld during quiet hours: {quiet_desc}")
+        return None
+
     # Check Cooldown
     now_ts = time.time()
     last_triggered_ts = settings.get("last_triggered_timestamp", 0)
@@ -216,6 +266,12 @@ def evaluate_and_notify(rates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     usd_buy = rates.get("usd_spot_buy", "--")
     usd_sell = rates.get("usd_spot_sell", "--")
 
+    quiet_note = ""
+    if settings.get("quiet_hours_enabled", True):
+        q_start = settings.get("quiet_hours_start", "18:00")
+        q_end = settings.get("quiet_hours_end", "08:00")
+        quiet_note = f"🌙 <b>夜間勿擾保護</b>: {q_start} ~ 次日 {q_end} 靜音\n"
+
     msg = (
         f"🚨 <b>【第一銀行黃金存摺 買進價格觸發通知】</b>\n\n"
         f"🎯 <b>觸發條件</b>: 銀行賣出價 {condition_text}\n"
@@ -223,7 +279,8 @@ def evaluate_and_notify(rates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         f"🏦 <b>一銀最新買入價</b>: {buy_str} {unit_label}\n"
         f"📊 <b>新臺幣牌價價差</b>: NT$ {spread:,.0f} / 公克\n"
         f"💵 <b>一銀美元即期匯率</b>: 買入 {usd_buy} / 賣出 {usd_sell}\n"
-        f"⏰ <b>觸發時間</b>: {now_time}\n\n"
+        f"⏰ <b>觸發時間</b>: {now_time}\n"
+        f"{quiet_note}\n"
         f"👉 <b>行動建議</b>: 目前價格已達您預設的買進目標，可至 <a href=\"https://mobile.firstbank.com.tw/c1/cheetah/zh/07/gold/rate?channel=X\">第一銀行行動網銀</a> 辦理黃金存摺買進！\n\n"
         f"<i>（系統已進入 {cooldown_minutes:.0f} 分鐘冷卻期，避免重複推播）</i>"
     )

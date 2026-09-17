@@ -639,6 +639,30 @@
                             <input type="number" id="alertCooldown" class="form-control" value="30" min="5" max="1440">
                             <small class="form-hint">觸發一次後暫停推播此分鐘數，避免牌價跳動重複轟炸</small>
                         </div>
+
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <div class="switch-row" style="padding: 8px 0 6px 0; border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 1px dashed rgba(255,255,255,0.08);">
+                                <label class="section-title" style="font-size: 13px; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-moon" style="color: #81D4FA;"></i> 夜間勿擾模式 (18:00 ~ 隔天 08:00 不通知)
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="alertQuietHoursEnabled" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div id="quietHoursTimeInputs" style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                                <div style="flex: 1;">
+                                    <label for="alertQuietStart" style="font-size: 11px; color: var(--text-muted);">勿擾開始 (臺灣時間)</label>
+                                    <input type="time" id="alertQuietStart" class="form-control" value="18:00" style="padding: 6px 10px;">
+                                </div>
+                                <span style="margin-top: 16px; color: var(--text-muted); font-size: 12px;">至隔天</span>
+                                <div style="flex: 1;">
+                                    <label for="alertQuietEnd" style="font-size: 11px; color: var(--text-muted);">勿擾結束 (臺灣時間)</label>
+                                    <input type="time" id="alertQuietEnd" class="form-control" value="08:00" style="padding: 6px 10px;">
+                                </div>
+                            </div>
+                            <small class="form-hint">在此時段內（臺灣時間），即使一銀牌價達到買進條件亦會自動靜音暫停推播，避免夜間打擾休息。</small>
+                        </div>
                     </div>
                 </div>
 

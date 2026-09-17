@@ -205,7 +205,11 @@ async def api_save_alert_settings(request: Request):
     """Save First Bank gold price alert settings."""
     data = await request.json()
     settings = alert_service.load_alert_settings()
-    for field in ["enabled", "bot_token", "chat_id", "unit", "target_price", "comparison", "cooldown_minutes"]:
+    for field in [
+        "enabled", "bot_token", "chat_id", "unit", "target_price",
+        "comparison", "cooldown_minutes", "quiet_hours_enabled",
+        "quiet_hours_start", "quiet_hours_end"
+    ]:
         if field in data:
             settings[field] = data[field]
     alert_service.save_alert_settings(settings)
