@@ -208,10 +208,13 @@ async def api_save_alert_settings(request: Request):
     for field in [
         "enabled", "bot_token", "chat_id", "unit", "target_price",
         "comparison", "cooldown_minutes", "quiet_hours_enabled",
-        "quiet_hours_start", "quiet_hours_end"
+        "quiet_hours_start", "quiet_hours_end", "updated_at"
     ]:
         if field in data:
             settings[field] = data[field]
+    if "updated_at" not in data or not data.get("updated_at"):
+        import time
+        settings["updated_at"] = int(time.time() * 1000)
     alert_service.save_alert_settings(settings)
 
     if settings.get("enabled"):

@@ -948,17 +948,42 @@ document.addEventListener("DOMContentLoaded", () => {
             if (raw) localCfg = JSON.parse(raw);
         } catch (e) {}
 
+        // Instant optimistic display
+        if (!currentAlertSettings && localCfg) {
+            currentAlertSettings = localCfg;
+            updateAlertBadgeUI(localCfg, window._latestFirstBankRates);
+            if (!silent) {
+                populateAlertModalUI(localCfg, window._latestFirstBankRates);
+            }
+        }
+
         try {
             const res = await fetch("/api/alerts/settings");
             const data = await res.json();
             if (data && data.status === "SUCCESS") {
-                currentAlertSettings = data.settings;
-                try {
-                    localStorage.setItem("gold_alert_settings", JSON.stringify(data.settings));
-                } catch (e) {}
-                updateAlertBadgeUI(data.settings, data.current_rates);
+                const serverCfg = data.settings || {};
+                const localUpdated = (localCfg && localCfg.updated_at) ? Number(localCfg.updated_at) : 0;
+                const serverUpdated = serverCfg.updated_at ? Number(serverCfg.updated_at) : 0;
+
+                let effectiveSettings = serverCfg;
+                // If local user recently saved newer settings, keep local and self-heal server
+                if (localUpdated > serverUpdated) {
+                    effectiveSettings = { ...serverCfg, ...localCfg };
+                    fetch("/api/alerts/settings", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(effectiveSettings)
+                    }).catch(() => {});
+                } else {
+                    try {
+                        localStorage.setItem("gold_alert_settings", JSON.stringify(serverCfg));
+                    } catch (e) {}
+                }
+
+                currentAlertSettings = effectiveSettings;
+                updateAlertBadgeUI(effectiveSettings, data.current_rates);
                 if (!silent) {
-                    populateAlertModalUI(data.settings, data.current_rates);
+                    populateAlertModalUI(effectiveSettings, data.current_rates);
                 }
                 return;
             }
@@ -1283,7 +1308,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 quiet_hours_start,
                 quiet_hours_end,
                 bot_token,
-                chat_id
+                chat_id,
+                updated_at: Date.now()
             };
 
             // Immediately persist in local browser storage and refresh badge

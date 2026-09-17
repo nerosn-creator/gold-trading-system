@@ -34,6 +34,7 @@ def default_alert_settings() -> Dict[str, Any]:
         "quiet_hours_enabled": True,# 夜間勿擾模式 (預設 18:00 ~ 08:00 不通知)
         "quiet_hours_start": "18:00",
         "quiet_hours_end": "08:00",
+        "updated_at": 0,
         "last_triggered_at": None,
         "last_triggered_price": None,
         "history": []
