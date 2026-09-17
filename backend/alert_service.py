@@ -91,8 +91,9 @@ def load_alert_settings() -> Dict[str, Any]:
         except Exception as e:
             logger.error(f"Failed to read alert settings from {SETTINGS_FILE}: {e}")
 
-    # 2. Serverless/local runtime override from TMP_SETTINGS_FILE
-    if os.path.exists(TMP_SETTINGS_FILE):
+    # 2. Serverless runtime override from TMP_SETTINGS_FILE (only if on serverless/read-only environment)
+    is_serverless = "VERCEL" in os.environ or not os.access(os.path.dirname(os.path.abspath(__file__)), os.W_OK)
+    if is_serverless and os.path.exists(TMP_SETTINGS_FILE):
         try:
             with open(TMP_SETTINGS_FILE, "r", encoding="utf-8") as f:
                 tmp_saved = json.load(f)
@@ -117,13 +118,15 @@ def save_alert_settings(settings: Dict[str, Any]) -> bool:
     except Exception as e:
         logger.warning(f"Cannot save settings to {SETTINGS_FILE} (expected on serverless): {e}")
 
-    # Always write to TMP_SETTINGS_FILE as well for runtime persistence
-    try:
-        with open(TMP_SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(settings, f, indent=2, ensure_ascii=False)
-        saved = True
-    except Exception as e:
-        logger.error(f"Cannot save settings to {TMP_SETTINGS_FILE}: {e}")
+    # If on serverless or SETTINGS_FILE write failed, write to TMP_SETTINGS_FILE as well
+    is_serverless = "VERCEL" in os.environ or not os.access(os.path.dirname(os.path.abspath(__file__)), os.W_OK)
+    if not saved or is_serverless:
+        try:
+            with open(TMP_SETTINGS_FILE, "w", encoding="utf-8") as f:
+                json.dump(settings, f, indent=2, ensure_ascii=False)
+            saved = True
+        except Exception as e:
+            logger.error(f"Cannot save settings to {TMP_SETTINGS_FILE}: {e}")
 
     return saved
 

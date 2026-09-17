@@ -952,14 +952,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const res = await fetch("/api/alerts/settings");
             const data = await res.json();
             if (data && data.status === "SUCCESS") {
-                let mergedSettings = { ...data.settings };
-                if (localCfg) {
-                    mergedSettings = { ...mergedSettings, ...localCfg };
-                }
-                currentAlertSettings = mergedSettings;
-                updateAlertBadgeUI(mergedSettings, data.current_rates);
+                currentAlertSettings = data.settings;
+                try {
+                    localStorage.setItem("gold_alert_settings", JSON.stringify(data.settings));
+                } catch (e) {}
+                updateAlertBadgeUI(data.settings, data.current_rates);
                 if (!silent) {
-                    populateAlertModalUI(mergedSettings, data.current_rates);
+                    populateAlertModalUI(data.settings, data.current_rates);
                 }
                 return;
             }

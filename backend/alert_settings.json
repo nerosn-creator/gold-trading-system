@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "bot_token": "8661051420:AAH9_bcBrwudI_nqa0f0AVonO5P9t25Lnpo",
   "chat_id": "5917151288",
   "unit": "usd_oz",
@@ -9,9 +9,18 @@
   "quiet_hours_enabled": true,
   "quiet_hours_start": "18:00",
   "quiet_hours_end": "08:00",
-  "last_triggered_at": "2026-09-15 19:40:08",
-  "last_triggered_price": 4297.2,
+  "last_triggered_at": "2026-09-17 11:13:25",
+  "last_triggered_price": 4295.65,
   "history": [
+    {
+      "timestamp": "2026-09-17 11:13:25",
+      "unit": "美元/盎司",
+      "current_price": 4295.65,
+      "target_price": 4300.0,
+      "comparison": "lte",
+      "success": true,
+      "detail": "發送成功"
+    },
     {
       "timestamp": "2026-09-15 19:40:08",
       "unit": "美元/盎司",
@@ -40,5 +49,5 @@
       "detail": "發送成功"
     }
   ],
-  "last_triggered_timestamp": 1789472408.3974361
+  "last_triggered_timestamp": 1789614805.9229362
 }
