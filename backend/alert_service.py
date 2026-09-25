@@ -182,6 +182,9 @@ def evaluate_and_notify(rates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     Evaluates current First Bank gold rates against user alert settings.
     If conditions are met, outside quiet hours and cooldown, sends Telegram notification.
     """
+    if "VERCEL" in os.environ or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        return None
+
     settings = load_alert_settings()
     if not settings.get("enabled"):
         return None
@@ -341,6 +344,9 @@ def alert_monitor_worker():
             time.sleep(1)
 
 def start_alert_monitor():
+    if "VERCEL" in os.environ or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        logger.info("Serverless environment detected (Vercel/Lambda); alert monitor background thread is disabled.")
+        return
     global _monitor_thread
     if _monitor_thread is not None and _monitor_thread.is_alive():
         return

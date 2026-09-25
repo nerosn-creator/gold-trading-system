@@ -22,10 +22,13 @@ app = FastAPI(title="Gold Trading Signal System API", version="1.0.0")
 
 @app.on_event("startup")
 def startup_event():
-    try:
-        alert_service.start_alert_monitor()
-    except Exception as e:
-        print(f"Failed to start alert monitor: {e}")
+    # Only run background alert monitor on long-running persistent host (not serverless like Vercel/Lambda)
+    is_serverless = "VERCEL" in os.environ or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
+    if not is_serverless:
+        try:
+            alert_service.start_alert_monitor()
+        except Exception as e:
+            print(f"Failed to start alert monitor: {e}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -188,6 +191,23 @@ def api_get_firstbank_rates(symbol: str = "XAUUSD"):
 @app.get("/api/alerts/settings")
 def api_get_alert_settings():
     """Get current First Bank gold alert settings and current market prices."""
+    import requests
+    is_serverless = "VERCEL" in os.environ or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
+    if is_serverless:
+        sync_url = os.environ.get("ALERT_SYNC_URL", "https://rethink-guacamole-curve.ngrok-free.dev")
+        try:
+            r = requests.get(
+                f"{sync_url}/api/alerts/settings",
+                headers={"ngrok-skip-browser-warning": "1"},
+                timeout=2.0
+            )
+            if r.status_code == 200:
+                data = r.json()
+                if data.get("status") == "SUCCESS" and "settings" in data:
+                    return data
+        except Exception:
+            pass
+
     settings = alert_service.load_alert_settings()
     from firstbank_gold import fetch_firstbank_gold_rates
     try:
@@ -203,7 +223,23 @@ def api_get_alert_settings():
 @app.post("/api/alerts/settings")
 async def api_save_alert_settings(request: Request):
     """Save First Bank gold price alert settings."""
+    import requests
     data = await request.json()
+    is_serverless = "VERCEL" in os.environ or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
+
+    # If running on serverless (e.g. Vercel), forward the update to the persistent runner tunnel
+    if is_serverless:
+        sync_url = os.environ.get("ALERT_SYNC_URL", "https://rethink-guacamole-curve.ngrok-free.dev")
+        try:
+            requests.post(
+                f"{sync_url}/api/alerts/settings",
+                json=data,
+                headers={"ngrok-skip-browser-warning": "1"},
+                timeout=3.0
+            )
+        except Exception as e:
+            print(f"Forward to local runner error: {e}")
+
     settings = alert_service.load_alert_settings()
     for field in [
         "enabled", "bot_token", "chat_id", "unit", "target_price",
@@ -217,10 +253,11 @@ async def api_save_alert_settings(request: Request):
         settings["updated_at"] = int(time.time() * 1000)
     alert_service.save_alert_settings(settings)
 
-    if settings.get("enabled"):
-        alert_service.start_alert_monitor()
-    else:
-        alert_service.stop_alert_monitor()
+    if not is_serverless:
+        if settings.get("enabled"):
+            alert_service.start_alert_monitor()
+        else:
+            alert_service.stop_alert_monitor()
 
     return {
         "status": "SUCCESS",

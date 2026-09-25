@@ -3,16 +3,34 @@
   "bot_token": "8661051420:AAH9_bcBrwudI_nqa0f0AVonO5P9t25Lnpo",
   "chat_id": "5917151288",
   "unit": "usd_oz",
-  "target_price": 4290.0,
+  "target_price": 4280.0,
   "comparison": "lte",
   "cooldown_minutes": 60,
   "quiet_hours_enabled": true,
   "quiet_hours_start": "18:00",
   "quiet_hours_end": "08:00",
-  "updated_at": 1789615670000,
-  "last_triggered_at": "2026-09-17 11:13:25",
-  "last_triggered_price": 4295.65,
+  "updated_at": 1790300400000,
+  "last_triggered_at": "2026-09-25 09:33:06",
+  "last_triggered_price": 4282.88,
   "history": [
+    {
+      "timestamp": "2026-09-25 09:33:06",
+      "unit": "美元/盎司",
+      "current_price": 4282.88,
+      "target_price": 4290.0,
+      "comparison": "lte",
+      "success": true,
+      "detail": "發送成功"
+    },
+    {
+      "timestamp": "2026-09-24 17:01:32",
+      "unit": "美元/盎司",
+      "current_price": 4289.5,
+      "target_price": 4290.0,
+      "comparison": "lte",
+      "success": true,
+      "detail": "發送成功"
+    },
     {
       "timestamp": "2026-09-17 11:13:25",
       "unit": "美元/盎司",
@@ -50,5 +68,5 @@
       "detail": "發送成功"
     }
   ],
-  "last_triggered_timestamp": 1789614805.9229362
+  "last_triggered_timestamp": 1790299986.8313928
 }
