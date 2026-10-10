@@ -176,6 +176,25 @@ def api_get_longterm(symbol: str = "XAUUSD"):
         "technical_proofs": technical_proofs
     }
 
+@app.get("/api/gold/whale-radar")
+def api_get_whale_radar(symbol: str = "XAUUSD"):
+    """
+    Returns 1-month wave analysis of institutional whale profit-taking vs dip-buying status.
+    """
+    from whale_detector import analyze_whale_radar
+    return analyze_whale_radar(symbol)
+
+@app.post("/api/gold/whale-radar/send-telegram")
+def api_send_whale_radar_telegram():
+    """
+    Triggers sending the daily whale radar summary to Telegram.
+    """
+    success, msg = alert_service.send_whale_radar_telegram(force=True)
+    return {
+        "status": "SUCCESS" if success else "ERROR",
+        "message": msg
+    }
+
 @app.get("/api/gold/firstbank")
 def api_get_firstbank_rates(symbol: str = "XAUUSD"):
     """

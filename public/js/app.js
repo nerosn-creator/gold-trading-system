@@ -23,6 +23,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (refreshBtn) {
         refreshBtn.addEventListener("click", () => {
             loadDashboardData();
+            loadWhaleRadar();
+            loadMacroLongTerm();
         });
     }
 
@@ -145,6 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initial Data Fetching
     loadDashboardData();
     loadPaperAccount();
+    loadWhaleRadar();
     loadMacroLongTerm();
     loadDailyEvents();
     loadOptimizationStatus();
@@ -156,6 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(() => {
         loadDashboardData(true);
         loadPaperAccount();
+        loadWhaleRadar();
         loadMacroLongTerm();
         loadDailyEvents();
         loadOptimizationStatus();
@@ -803,6 +807,177 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (e) {
             console.error("Failed to load long-term macro strategy:", e);
         }
+    }
+
+    async function loadWhaleRadar() {
+        try {
+            const res = await fetch("/api/gold/whale-radar?symbol=XAUUSD");
+            const data = await res.json();
+            if (!data || data.status === "ERROR") return;
+
+            const decisionBox = document.getElementById("whaleDecisionBox");
+            const signalTag = document.getElementById("whaleSignalTag");
+            const headlineText = document.getElementById("whaleHeadlineText");
+            const adviceText = document.getElementById("whaleAdviceText");
+            const dateBadge = document.getElementById("whaleDateBadge");
+            const toastText = document.getElementById("whaleToastText");
+
+            // 1. Decision Box styling & texts
+            if (decisionBox) {
+                let cls = "neutral";
+                if (data.decision_type === "BUY_ALERT") cls = "buy";
+                else if (data.decision_type === "SELL_ALERT") cls = "sell";
+                decisionBox.className = `whale-decision-box ${cls}`;
+            }
+
+            if (signalTag) signalTag.textContent = data.action_badge || "分析完成";
+            if (headlineText) headlineText.textContent = data.headline || "";
+            if (adviceText) adviceText.textContent = data.simple_advice || "";
+            if (dateBadge && data.date) dateBadge.textContent = `📅 ${data.date} 判定`;
+            if (toastText) toastText.textContent = data.daily_alert_text || "";
+
+            // 2. Metrics & Progress Bars
+            const wmGainLow = document.getElementById("wmGainLow");
+            const wmGainBar = document.getElementById("wmGainBar");
+            const wmDropHigh = document.getElementById("wmDropHigh");
+            const wmDropBar = document.getElementById("wmDropBar");
+
+            const gainPct = data.gain_from_month_low_pct || 0;
+            const dropPct = data.effective_drop_pct || data.drop_from_month_high_pct || 0;
+
+            if (wmGainLow) wmGainLow.textContent = `${gainPct >= 0 ? "+" : ""}${gainPct.toFixed(1)}%`;
+            if (wmGainBar) {
+                // Scale 0% ~ 20% to 0% ~ 100% width
+                const barW = Math.min(100, Math.max(0, (gainPct / 20) * 100));
+                wmGainBar.style.width = `${barW}%`;
+            }
+
+            if (wmDropHigh) wmDropHigh.textContent = `${dropPct.toFixed(1)}%`;
+            if (wmDropBar) {
+                // Scale 0% ~ -18% to 0% ~ 100% width
+                const barW = Math.min(100, Math.max(0, (Math.abs(dropPct) / 18) * 100));
+                wmDropBar.style.width = `${barW}%`;
+            }
+
+            // 3. Anchors row
+            const waBias200 = document.getElementById("waBias200");
+            const waDist50 = document.getElementById("waDist50");
+            const waFibRet = document.getElementById("waFibRet");
+            const waRsi = document.getElementById("waRsi");
+
+            if (waBias200) {
+                const b = data.bias_200sma_pct || 0;
+                waBias200.textContent = `${b >= 0 ? "+" : ""}${b.toFixed(1)}%`;
+                waBias200.style.color = b >= 15 ? "#FF5252" : "#ECEFF1";
+            }
+            if (waDist50) {
+                const d50 = data.dist_50sma_pct || 0;
+                waDist50.textContent = `${d50 >= 0 ? "+" : ""}${d50.toFixed(1)}%`;
+            }
+            if (waFibRet) {
+                waFibRet.textContent = `${(data.fib_retrace_pct || 0).toFixed(1)}%`;
+            }
+            if (waRsi) {
+                const r = data.rsi_14 || 50;
+                waRsi.textContent = r.toFixed(1);
+                waRsi.style.color = r >= 70 ? "#FF5252" : (r <= 40 ? "#00E676" : "#ECEFF1");
+            }
+
+            // 4. Checklists
+            const sellScoreBadge = document.getElementById("sellScoreBadge");
+            const buyScoreBadge = document.getElementById("buyScoreBadge");
+            if (sellScoreBadge) sellScoreBadge.textContent = `${data.sell_score || 0}/4`;
+            if (buyScoreBadge) buyScoreBadge.textContent = `${data.buy_score || 0}/4`;
+
+            const sellContainer = document.getElementById("sellChecklistContainer");
+            if (sellContainer && Array.isArray(data.sell_checklist)) {
+                sellContainer.innerHTML = data.sell_checklist.map(item => {
+                    const trig = item.triggered;
+                    return `
+                        <div class="w-check-item ${trig ? 'triggered sell-type' : ''}">
+                            <i class="${trig ? 'fa-solid fa-circle-exclamation w-check-icon active-sell' : 'fa-regular fa-circle w-check-icon inactive'}"></i>
+                            <div class="w-check-body">
+                                <div class="w-check-title">
+                                    <span>${item.title}</span>
+                                    <span style="color: ${trig ? '#FF5252' : '#78909C'}; font-size: 10px;">${trig ? '已觸發 ⚠️' : '未達門檻'}</span>
+                                </div>
+                                <div class="w-check-desc">${item.desc}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            }
+
+            const buyContainer = document.getElementById("buyChecklistContainer");
+            if (buyContainer && Array.isArray(data.buy_checklist)) {
+                buyContainer.innerHTML = data.buy_checklist.map(item => {
+                    const trig = item.triggered;
+                    return `
+                        <div class="w-check-item ${trig ? 'triggered' : ''}">
+                            <i class="${trig ? 'fa-solid fa-circle-check w-check-icon active-buy' : 'fa-regular fa-circle w-check-icon inactive'}"></i>
+                            <div class="w-check-body">
+                                <div class="w-check-title">
+                                    <span>${item.title}</span>
+                                    <span style="color: ${trig ? '#00E676' : '#78909C'}; font-size: 10px;">${trig ? '已滿足 ✅' : '未達門檻'}</span>
+                                </div>
+                                <div class="w-check-desc">${item.desc}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            }
+
+        } catch (e) {
+            console.error("Failed to load whale radar:", e);
+        }
+    }
+
+    // Tab Switcher for Whale Criteria
+    const tabBtnSell = document.getElementById("tabBtnSell");
+    const tabBtnBuy = document.getElementById("tabBtnBuy");
+    const sellCriteriaTab = document.getElementById("sellCriteriaTab");
+    const buyCriteriaTab = document.getElementById("buyCriteriaTab");
+
+    if (tabBtnSell && tabBtnBuy && sellCriteriaTab && buyCriteriaTab) {
+        tabBtnSell.addEventListener("click", () => {
+            tabBtnSell.classList.add("active");
+            tabBtnBuy.classList.remove("active");
+            sellCriteriaTab.classList.add("active");
+            buyCriteriaTab.classList.remove("active");
+        });
+        tabBtnBuy.addEventListener("click", () => {
+            tabBtnBuy.classList.add("active");
+            tabBtnSell.classList.remove("active");
+            buyCriteriaTab.classList.add("active");
+            sellCriteriaTab.classList.remove("active");
+        });
+    }
+
+    // Telegram manual push button
+    const btnSendWhaleTelegram = document.getElementById("btnSendWhaleTelegram");
+    if (btnSendWhaleTelegram) {
+        btnSendWhaleTelegram.addEventListener("click", async () => {
+            try {
+                btnSendWhaleTelegram.disabled = true;
+                btnSendWhaleTelegram.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 發送中...';
+                const res = await fetch("/api/gold/whale-radar/send-telegram", { method: "POST" });
+                const json = await res.json();
+                if (json.status === "SUCCESS") {
+                    btnSendWhaleTelegram.innerHTML = '<i class="fa-solid fa-check"></i> 已推播';
+                } else {
+                    alert("發送失敗: " + (json.message || "請先確認 Telegram 憑證已設定"));
+                    btnSendWhaleTelegram.innerHTML = '<i class="fa-brands fa-telegram"></i> 每日推播';
+                }
+                setTimeout(() => {
+                    btnSendWhaleTelegram.disabled = false;
+                    btnSendWhaleTelegram.innerHTML = '<i class="fa-brands fa-telegram"></i> 每日推播';
+                }, 3000);
+            } catch (err) {
+                alert("發送失敗: " + err);
+                btnSendWhaleTelegram.disabled = false;
+                btnSendWhaleTelegram.innerHTML = '<i class="fa-brands fa-telegram"></i> 每日推播';
+            }
+        });
     }
 
     async function loadDailyEvents() {

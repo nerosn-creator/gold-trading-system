@@ -34,6 +34,8 @@ def default_alert_settings() -> Dict[str, Any]:
         "quiet_hours_enabled": True,# 夜間勿擾模式 (預設 18:00 ~ 08:00 不通知)
         "quiet_hours_start": "18:00",
         "quiet_hours_end": "08:00",
+        "daily_whale_alert_enabled": True, # 每日大戶操盤雷達提醒
+        "last_whale_alert_date": None,      # 上次發送每日大戶通知日期
         "updated_at": 0,
         "last_triggered_at": None,
         "last_triggered_price": None,
@@ -316,6 +318,89 @@ def evaluate_and_notify(rates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
     return history_entry
 
+def send_whale_radar_telegram(settings: Optional[Dict[str, Any]] = None, force: bool = False) -> Tuple[bool, str]:
+    """
+    Sends the Daily Whale Radar analysis to Telegram.
+    """
+    if settings is None:
+        settings = load_alert_settings()
+
+    bot_token = settings.get("bot_token", "").strip()
+    chat_id = settings.get("chat_id", "").strip()
+
+    if not bot_token or not chat_id:
+        return False, "未設定 Telegram Bot Token 或 Chat ID"
+
+    from whale_detector import analyze_whale_radar
+    radar = analyze_whale_radar("XAUUSD")
+    if radar.get("status") != "SUCCESS":
+        return False, f"大戶雷達分析失敗: {radar.get('message')}"
+
+    now_time = get_kh_time_str()
+    curr_price = radar.get("current_price", 0.0)
+    badge = radar.get("action_badge", "")
+    headline = radar.get("headline", "")
+    advice = radar.get("simple_advice", "")
+    m_low = radar.get("month_low", 0.0)
+    m_high = radar.get("month_high", 0.0)
+    gain_low = radar.get("gain_from_month_low_pct", 0.0)
+    drop_high = radar.get("effective_drop_pct", 0.0)
+    bias_200 = radar.get("bias_200sma_pct", 0.0)
+    fib_ret = radar.get("fib_retrace_pct", 0.0)
+    sell_score = radar.get("sell_score", 0)
+    buy_score = radar.get("buy_score", 0)
+
+    # Format Telegram HTML Message
+    msg = (
+        f"🐋 <b>【黃金大盤｜每日大戶動向與操盤雷達】</b>\n\n"
+        f"🎯 <b>大戶操盤訊號</b>: <b>{badge}</b>\n"
+        f"💰 <b>國際金價現報</b>: <b>${curr_price:,.2f} 美元/盎司</b>\n"
+        f"📢 <b>走勢警示</b>: {headline}\n\n"
+        f"💡 <b>超直觀行動建議</b>:\n"
+        f"{advice}\n\n"
+        f"📊 <b>近一個月波段量化數據</b>:\n"
+        f"• 近月最低點: ${m_low:,.1f} (從低點累計 {gain_low:+.1f}%)\n"
+        f"• 近月最高點: ${m_high:,.1f} (自高點回檔 {drop_high:.1f}%)\n"
+        f"• 偏離 200 日線乖離率: {bias_200:+.1f}% (門檻: 15%)\n"
+        f"• 斐波那契回撤比例: {fib_ret:.1f}%\n\n"
+        f"🔍 <b>大戶條件對照觸發</b>:\n"
+        f"• 🔴 獲利了結警戒: 觸發 {sell_score}/4 項條件\n"
+        f"• 🟢 逢低回購信號: 觸發 {buy_score}/4 項條件\n\n"
+        f"⏰ <b>更新時間</b>: {now_time}\n"
+        f"<i>（系統每日早晨自動監測大盤近月走勢並推播一次）</i>"
+    )
+
+    success, err_msg = send_telegram_message(bot_token, chat_id, msg)
+    if success:
+        today_date = datetime.now().strftime("%Y-%m-%d")
+        settings["last_whale_alert_date"] = today_date
+        save_alert_settings(settings)
+        return True, "每日大戶雷達通知發送成功"
+    return False, err_msg
+
+def evaluate_daily_whale_alert(settings: Dict[str, Any]):
+    """
+    Evaluates whether to send the daily whale radar alert (once per day).
+    """
+    if not settings.get("enabled", False):
+        return
+    if not settings.get("daily_whale_alert_enabled", True):
+        return
+
+    # Check quiet hours (don't alert during night)
+    in_quiet, _ = is_in_quiet_hours(settings)
+    if in_quiet:
+        return
+
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    last_date = settings.get("last_whale_alert_date")
+
+    # Send once per day
+    if last_date != today_date:
+        logger.info(f"Triggering daily whale radar alert for {today_date}...")
+        success, detail = send_whale_radar_telegram(settings)
+        logger.info(f"Daily whale alert result: {success} ({detail})")
+
 # Background Monitor Thread
 _monitor_thread: Optional[threading.Thread] = None
 _stop_event = threading.Event()
@@ -334,6 +419,7 @@ def alert_monitor_worker():
             if settings.get("enabled"):
                 rates = fetch_firstbank_gold_rates()
                 evaluate_and_notify(rates)
+                evaluate_daily_whale_alert(settings)
         except Exception as e:
             logger.error(f"Error in alert_monitor_worker: {e}")
 

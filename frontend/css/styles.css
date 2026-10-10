@@ -2440,4 +2440,397 @@ input:checked + .slider:before {
     box-shadow: 0 4px 16px rgba(0, 230, 118, 0.35);
 }
 
+/* ========================================================
+   Institutional Whale Radar Card Styles (大戶波段操盤雷達)
+   ======================================================== */
+.whale-card {
+    border: 1px solid rgba(0, 230, 118, 0.25);
+    background: radial-gradient(circle at 50% 0%, rgba(0, 230, 118, 0.08) 0%, rgba(20, 27, 40, 0.95) 100%);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.whale-card.alert-sell {
+    border-color: rgba(255, 75, 75, 0.35);
+    background: radial-gradient(circle at 50% 0%, rgba(255, 75, 75, 0.1) 0%, rgba(20, 27, 40, 0.95) 100%);
+}
+
+.card-title-flex {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.whale-radar-icon {
+    font-size: 18px;
+    color: #00E676;
+    animation: radarPulse 2.5s infinite;
+}
+
+@keyframes radarPulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 8px rgba(0, 230, 118, 0.6)); }
+    100% { transform: scale(1); opacity: 0.8; }
+}
+
+.whale-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #FFF;
+    margin: 0;
+}
+
+.whale-sub-title {
+    font-size: 10px;
+    color: var(--text-dim, #90A4AE);
+    display: block;
+}
+
+.whale-header-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.whale-badge-date {
+    font-size: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #B0BEC5;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.btn-tg-mini {
+    background: linear-gradient(135deg, #0088cc, #00b0ff);
+    color: #FFF;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.btn-tg-mini:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 136, 204, 0.4);
+}
+
+/* 1. Super Clear Decision Box */
+.whale-decision-box {
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin: 10px 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.35);
+    transition: all 0.3s ease;
+}
+
+.whale-decision-box.buy {
+    border-color: rgba(0, 230, 118, 0.4);
+    background: linear-gradient(180deg, rgba(0, 230, 118, 0.12) 0%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.whale-decision-box.sell {
+    border-color: rgba(255, 75, 75, 0.4);
+    background: linear-gradient(180deg, rgba(255, 75, 75, 0.12) 0%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.whale-decision-box.neutral {
+    border-color: rgba(255, 215, 0, 0.3);
+    background: linear-gradient(180deg, rgba(255, 215, 0, 0.08) 0%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.whale-decision-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.whale-signal-tag {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+}
+
+.whale-decision-box.buy .whale-signal-tag {
+    background: rgba(0, 230, 118, 0.2);
+    color: #00E676;
+    border: 1px solid rgba(0, 230, 118, 0.5);
+}
+
+.whale-decision-box.sell .whale-signal-tag {
+    background: rgba(255, 75, 75, 0.2);
+    color: #FF5252;
+    border: 1px solid rgba(255, 75, 75, 0.5);
+}
+
+.whale-decision-box.neutral .whale-signal-tag {
+    background: rgba(255, 215, 0, 0.15);
+    color: #FFD700;
+    border: 1px solid rgba(255, 215, 0, 0.4);
+}
+
+.whale-period-tag {
+    font-size: 10px;
+    color: #90A4AE;
+}
+
+.whale-headline {
+    font-size: 13px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.whale-advice-body {
+    font-size: 11px;
+    color: #CFD8DC;
+    line-height: 1.5;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 8px 10px;
+    border-radius: 6px;
+    border-left: 3px solid #FFD700;
+}
+
+.whale-decision-box.buy .whale-advice-body {
+    border-left-color: #00E676;
+}
+
+.whale-decision-box.sell .whale-advice-body {
+    border-left-color: #FF5252;
+}
+
+/* 2. Wave Progress & Metrics */
+.whale-metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.wm-card {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.wm-lbl {
+    font-size: 10px;
+    color: #90A4AE;
+    margin-bottom: 2px;
+}
+
+.wm-val {
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.wm-val.bullish { color: #00E676; }
+.wm-val.bearish { color: #FF5252; }
+
+.wm-hint {
+    font-size: 9px;
+    color: #78909C;
+    margin: 3px 0 5px 0;
+}
+
+.wm-hint b {
+    color: #ECEFF1;
+}
+
+.wm-bar-track {
+    width: 100%;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.wm-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+.wm-bar-fill.red {
+    background: linear-gradient(90deg, #FFB300, #FF5252);
+}
+
+.wm-bar-fill.green {
+    background: linear-gradient(90deg, #26A69A, #00E676);
+}
+
+/* 3. Anchors row */
+.whale-anchors-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.wa-item {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+.wa-lbl {
+    font-size: 9px;
+    color: #90A4AE;
+}
+
+.wa-val {
+    font-size: 12px;
+    font-weight: 700;
+    color: #FFF;
+    margin: 2px 0;
+}
+
+.wa-sub {
+    font-size: 8px;
+    color: #607D8B;
+}
+
+/* 4. Tabs & Checklist */
+.whale-tabs-wrap {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.whale-tabs-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.w-tab-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: none;
+    color: #90A4AE;
+    padding: 8px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    text-align: center;
+}
+
+.w-tab-btn:hover {
+    color: #FFF;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.w-tab-btn.active {
+    color: #FFF;
+    background: rgba(255, 255, 255, 0.1);
+    border-bottom: 2px solid var(--gold-primary, #FFD700);
+}
+
+.w-tab-content {
+    display: none;
+    padding: 8px 10px;
+}
+
+.w-tab-content.active {
+    display: block;
+}
+
+.w-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.w-check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.w-check-item.triggered {
+    background: rgba(0, 230, 118, 0.06);
+    border-color: rgba(0, 230, 118, 0.2);
+}
+
+.w-check-item.triggered.sell-type {
+    background: rgba(255, 75, 75, 0.06);
+    border-color: rgba(255, 75, 75, 0.2);
+}
+
+.w-check-icon {
+    font-size: 13px;
+    margin-top: 1px;
+}
+
+.w-check-icon.active-sell { color: #FF5252; }
+.w-check-icon.active-buy { color: #00E676; }
+.w-check-icon.inactive { color: #546E7A; }
+
+.w-check-body {
+    flex: 1;
+}
+
+.w-check-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #ECEFF1;
+    display: flex;
+    justify-content: space-between;
+}
+
+.w-check-desc {
+    font-size: 10px;
+    color: #90A4AE;
+    margin-top: 2px;
+}
+
+/* 5. Daily Toast */
+.whale-daily-toast {
+    background: rgba(255, 215, 0, 0.06);
+    border: 1px dashed rgba(255, 215, 0, 0.3);
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.w-toast-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #FFD700;
+    margin-bottom: 4px;
+}
+
+.w-toast-text {
+    font-size: 10.5px;
+    color: #E0E0E0;
+    line-height: 1.4;
+}
+
+
 
