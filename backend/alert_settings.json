@@ -10,6 +10,7 @@
   "quiet_hours_start": "18:00",
   "quiet_hours_end": "08:00",
   "daily_whale_alert_enabled": true,
+  "daily_whale_alert_time": "08:30",
   "last_whale_alert_date": "2026-10-10",
   "updated_at": 1790654354232,
   "last_triggered_at": "2026-09-29 11:05:47",

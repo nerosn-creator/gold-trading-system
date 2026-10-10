@@ -35,6 +35,7 @@ def default_alert_settings() -> Dict[str, Any]:
         "quiet_hours_start": "18:00",
         "quiet_hours_end": "08:00",
         "daily_whale_alert_enabled": True, # 每日大戶操盤雷達提醒
+        "daily_whale_alert_time": "08:30",  # 每日大戶推播時間 (預設早上 08:30 台北時間)
         "last_whale_alert_date": None,      # 上次發送每日大戶通知日期
         "updated_at": 0,
         "last_triggered_at": None,
@@ -381,6 +382,7 @@ def send_whale_radar_telegram(settings: Optional[Dict[str, Any]] = None, force: 
 def evaluate_daily_whale_alert(settings: Dict[str, Any]):
     """
     Evaluates whether to send the daily whale radar alert (once per day).
+    Default scheduled time: 08:30 AM (Taipei Time), before Taiwan markets open.
     """
     if not settings.get("enabled", False):
         return
@@ -392,12 +394,29 @@ def evaluate_daily_whale_alert(settings: Dict[str, Any]):
     if in_quiet:
         return
 
-    today_date = datetime.now().strftime("%Y-%m-%d")
+    try:
+        tz = pytz.timezone('Asia/Taipei')
+        now_dt = datetime.now(tz)
+    except Exception:
+        now_dt = datetime.now()
+
+    today_date = now_dt.strftime("%Y-%m-%d")
     last_date = settings.get("last_whale_alert_date")
+
+    # Check scheduled push time (default: 08:30 AM Taipei time)
+    scheduled_time = settings.get("daily_whale_alert_time", "08:30") or "08:30"
+    try:
+        sh, sm = map(int, scheduled_time.strip().split(":"))
+        current_minutes = now_dt.hour * 60 + now_dt.minute
+        scheduled_minutes = sh * 60 + sm
+        if current_minutes < scheduled_minutes:
+            return  # Not yet reached today's push time
+    except Exception as e:
+        logger.error(f"Error parsing daily_whale_alert_time: {e}")
 
     # Send once per day
     if last_date != today_date:
-        logger.info(f"Triggering daily whale radar alert for {today_date}...")
+        logger.info(f"Triggering daily whale radar alert for {today_date} at {now_dt.strftime('%H:%M:%S')}...")
         success, detail = send_whale_radar_telegram(settings)
         logger.info(f"Daily whale alert result: {success} ({detail})")
 
