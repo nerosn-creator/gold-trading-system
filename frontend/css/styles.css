@@ -2451,6 +2451,41 @@ input:checked + .slider:before {
     overflow: hidden;
 }
 
+.whale-card.wide-layout {
+    margin: 16px 0 12px 0;
+    border-radius: 12px;
+    padding: 16px 20px;
+}
+
+.whale-wide-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.whale-wide-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 18px;
+    align-items: start;
+}
+
+.whale-col-left, .whale-col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+@media (max-width: 1024px) {
+    .whale-wide-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+}
+
 .whale-card.alert-sell {
     border-color: rgba(255, 75, 75, 0.35);
     background: radial-gradient(circle at 50% 0%, rgba(255, 75, 75, 0.1) 0%, rgba(20, 27, 40, 0.95) 100%);
