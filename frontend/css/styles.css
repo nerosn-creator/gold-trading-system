@@ -2463,20 +2463,20 @@ input:checked + .slider:before {
     align-items: center;
     margin-bottom: 14px;
     padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .whale-wide-grid {
     display: grid;
     grid-template-columns: 1.15fr 1fr;
-    gap: 18px;
+    gap: 16px;
     align-items: start;
 }
 
 .whale-col-left, .whale-col-right {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 @media (max-width: 1024px) {
@@ -2486,9 +2486,20 @@ input:checked + .slider:before {
     }
 }
 
+.whale-card {
+    background: #0B111A !important;
+    border: 1px solid #1F2D42 !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
 .whale-card.alert-sell {
-    border-color: rgba(255, 75, 75, 0.35);
-    background: radial-gradient(circle at 50% 0%, rgba(255, 75, 75, 0.1) 0%, rgba(20, 27, 40, 0.95) 100%);
+    border-color: rgba(255, 75, 75, 0.6) !important;
+    box-shadow: 0 0 20px rgba(255, 75, 75, 0.2);
+}
+
+.whale-card.alert-buy {
+    border-color: rgba(0, 230, 118, 0.6) !important;
+    box-shadow: 0 0 20px rgba(0, 230, 118, 0.2);
 }
 
 .card-title-flex {
@@ -2498,292 +2509,363 @@ input:checked + .slider:before {
 }
 
 .whale-radar-icon {
-    font-size: 18px;
+    font-size: 20px;
     color: #00E676;
+    filter: drop-shadow(0 0 8px rgba(0, 230, 118, 0.8));
     animation: radarPulse 2.5s infinite;
 }
 
 @keyframes radarPulse {
-    0% { transform: scale(1); opacity: 0.8; }
-    50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 8px rgba(0, 230, 118, 0.6)); }
-    100% { transform: scale(1); opacity: 0.8; }
+    0% { transform: scale(1); opacity: 0.85; }
+    50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 12px rgba(0, 230, 118, 1)); }
+    100% { transform: scale(1); opacity: 0.85; }
 }
 
 .whale-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: #FFF;
+    font-size: 15px;
+    font-weight: 800;
+    color: #FFFFFF;
+    letter-spacing: 0.5px;
     margin: 0;
 }
 
 .whale-sub-title {
-    font-size: 10px;
-    color: var(--text-dim, #90A4AE);
+    font-size: 11px;
+    color: #94A3B8;
     display: block;
+    margin-top: 1px;
 }
 
 .whale-header-badges {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
 .whale-badge-date {
-    font-size: 10px;
-    background: rgba(255, 255, 255, 0.08);
-    color: #B0BEC5;
-    padding: 2px 6px;
+    font-size: 11px;
+    background: #162234;
+    color: #38BDF8;
+    border: 1px solid #1E3A5F;
+    padding: 3px 8px;
     border-radius: 4px;
+    font-weight: 600;
 }
 
 .btn-tg-mini {
-    background: linear-gradient(135deg, #0088cc, #00b0ff);
+    background: linear-gradient(135deg, #0284C7, #0EA5E9);
     color: #FFF;
-    border: none;
+    border: 1px solid #38BDF8;
     border-radius: 4px;
-    padding: 3px 8px;
-    font-size: 10px;
+    padding: 4px 10px;
+    font-size: 11px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-weight: 600;
+    gap: 5px;
+    font-weight: 700;
     transition: 0.2s;
+    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3);
 }
 
 .btn-tg-mini:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 136, 204, 0.4);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.5);
+    background: linear-gradient(135deg, #0369A1, #0284C7);
 }
 
-/* 1. Super Clear Decision Box */
+/* 1. Super Clear Decision Box (大戶買賣強對比指示盒) */
 .whale-decision-box {
-    padding: 12px 14px;
-    border-radius: 8px;
-    margin: 10px 0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.35);
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 2px solid #2A3B52;
+    background: #111827;
     transition: all 0.3s ease;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .whale-decision-box.buy {
-    border-color: rgba(0, 230, 118, 0.4);
-    background: linear-gradient(180deg, rgba(0, 230, 118, 0.12) 0%, rgba(0, 0, 0, 0.4) 100%);
+    border-color: #00E676;
+    background: linear-gradient(145deg, rgba(0, 230, 118, 0.16) 0%, #0D2218 60%, #091710 100%);
+    box-shadow: 0 0 25px rgba(0, 230, 118, 0.25), inset 0 0 15px rgba(0, 230, 118, 0.08);
 }
 
 .whale-decision-box.sell {
-    border-color: rgba(255, 75, 75, 0.4);
-    background: linear-gradient(180deg, rgba(255, 75, 75, 0.12) 0%, rgba(0, 0, 0, 0.4) 100%);
+    border-color: #FF4444;
+    background: linear-gradient(145deg, rgba(255, 68, 68, 0.18) 0%, #2A0F13 60%, #1A090B 100%);
+    box-shadow: 0 0 25px rgba(255, 68, 68, 0.25), inset 0 0 15px rgba(255, 68, 68, 0.08);
 }
 
 .whale-decision-box.neutral {
-    border-color: rgba(255, 215, 0, 0.3);
-    background: linear-gradient(180deg, rgba(255, 215, 0, 0.08) 0%, rgba(0, 0, 0, 0.4) 100%);
+    border-color: #EAB308;
+    background: linear-gradient(145deg, rgba(234, 179, 8, 0.12) 0%, #1E1B0E 60%, #131209 100%);
+    box-shadow: 0 0 20px rgba(234, 179, 8, 0.15);
 }
 
 .whale-decision-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .whale-signal-tag {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 800;
-    padding: 3px 10px;
+    padding: 4px 12px;
     border-radius: 20px;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .whale-decision-box.buy .whale-signal-tag {
-    background: rgba(0, 230, 118, 0.2);
-    color: #00E676;
-    border: 1px solid rgba(0, 230, 118, 0.5);
+    background: #00E676;
+    color: #05160E;
+    box-shadow: 0 0 12px rgba(0, 230, 118, 0.6);
 }
 
 .whale-decision-box.sell .whale-signal-tag {
-    background: rgba(255, 75, 75, 0.2);
-    color: #FF5252;
-    border: 1px solid rgba(255, 75, 75, 0.5);
+    background: #FF4444;
+    color: #FFFFFF;
+    box-shadow: 0 0 12px rgba(255, 68, 68, 0.6);
 }
 
 .whale-decision-box.neutral .whale-signal-tag {
-    background: rgba(255, 215, 0, 0.15);
-    color: #FFD700;
-    border: 1px solid rgba(255, 215, 0, 0.4);
+    background: #EAB308;
+    color: #1A1400;
+    box-shadow: 0 0 12px rgba(234, 179, 8, 0.5);
 }
 
 .whale-period-tag {
-    font-size: 10px;
-    color: #90A4AE;
+    font-size: 11px;
+    color: #94A3B8;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .whale-headline {
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 14.5px;
+    font-weight: 800;
     color: #FFFFFF;
-    margin-bottom: 6px;
-    line-height: 1.4;
+    margin-bottom: 8px;
+    line-height: 1.45;
+}
+
+.whale-decision-box.buy .whale-headline {
+    color: #69F0AE;
+    text-shadow: 0 0 10px rgba(0, 230, 118, 0.3);
+}
+
+.whale-decision-box.sell .whale-headline {
+    color: #FF8A80;
+    text-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
 }
 
 .whale-advice-body {
-    font-size: 11px;
-    color: #CFD8DC;
-    line-height: 1.5;
-    background: rgba(255, 255, 255, 0.04);
-    padding: 8px 10px;
+    font-size: 12px;
+    color: #E2E8F0;
+    line-height: 1.6;
+    background: rgba(0, 0, 0, 0.45);
+    padding: 10px 12px;
     border-radius: 6px;
-    border-left: 3px solid #FFD700;
+    border-left: 4px solid #EAB308;
 }
 
 .whale-decision-box.buy .whale-advice-body {
     border-left-color: #00E676;
+    background: rgba(0, 0, 0, 0.5);
 }
 
 .whale-decision-box.sell .whale-advice-body {
-    border-left-color: #FF5252;
+    border-left-color: #FF4444;
+    background: rgba(0, 0, 0, 0.5);
 }
 
-/* 2. Wave Progress & Metrics */
+/* 2. Wave Progress & Metrics (大戶波段深色質感磁貼) */
 .whale-metrics-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: 10px;
 }
 
 .wm-card {
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
-    padding: 8px;
+    background: #131D2A;
+    border: 1px solid #23354E;
+    border-radius: 8px;
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.wm-card:hover {
+    border-color: #38BDF8;
+    transform: translateY(-1px);
 }
 
 .wm-lbl {
-    font-size: 10px;
-    color: #90A4AE;
-    margin-bottom: 2px;
+    font-size: 11px;
+    color: #94A3B8;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
 }
 
 .wm-val {
-    font-size: 15px;
+    font-size: 22px;
+    font-family: 'Outfit', sans-serif;
     font-weight: 800;
+    letter-spacing: -0.5px;
+    margin: 2px 0;
 }
 
-.wm-val.bullish { color: #00E676; }
-.wm-val.bearish { color: #FF5252; }
+.wm-val.bullish {
+    color: #00E676;
+    text-shadow: 0 0 12px rgba(0, 230, 118, 0.35);
+}
+
+.wm-val.bearish {
+    color: #FF4444;
+    text-shadow: 0 0 12px rgba(255, 68, 68, 0.35);
+}
 
 .wm-hint {
-    font-size: 9px;
-    color: #78909C;
-    margin: 3px 0 5px 0;
+    font-size: 10.5px;
+    color: #94A3B8;
+    margin: 4px 0 8px 0;
+    line-height: 1.35;
 }
 
 .wm-hint b {
-    color: #ECEFF1;
+    color: #F8FAFC;
+    background: #1E293B;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 700;
 }
 
 .wm-bar-track {
     width: 100%;
-    height: 5px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    height: 7px;
+    background: #1E293B;
+    border-radius: 4px;
     overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .wm-bar-fill {
     height: 100%;
-    border-radius: 3px;
-    transition: width 0.6s ease;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .wm-bar-fill.red {
-    background: linear-gradient(90deg, #FFB300, #FF5252);
+    background: linear-gradient(90deg, #F59E0B, #EF4444);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 
 .wm-bar-fill.green {
-    background: linear-gradient(90deg, #26A69A, #00E676);
+    background: linear-gradient(90deg, #059669, #00E676);
+    box-shadow: 0 0 8px rgba(0, 230, 118, 0.5);
 }
 
-/* 3. Anchors row */
+/* 3. Anchors row (4大技術指標深色磁貼) */
 .whale-anchors-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 8px;
-    border-radius: 6px;
-    margin-bottom: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 8px;
+    background: #0E1622;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #1E2C3D;
 }
 
 .wa-item {
     display: flex;
     flex-direction: column;
     text-align: center;
+    background: #141E2C;
+    padding: 6px 4px;
+    border-radius: 6px;
+    border: 1px solid #1F3045;
 }
 
 .wa-lbl {
-    font-size: 9px;
-    color: #90A4AE;
+    font-size: 10px;
+    color: #94A3B8;
+    font-weight: 600;
 }
 
 .wa-val {
-    font-size: 12px;
-    font-weight: 700;
-    color: #FFF;
-    margin: 2px 0;
+    font-size: 14px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    color: #F8FAFC;
+    margin: 3px 0;
 }
 
 .wa-sub {
-    font-size: 8px;
-    color: #607D8B;
+    font-size: 9.5px;
+    color: #64748B;
+    font-weight: 600;
 }
 
-/* 4. Tabs & Checklist */
+/* 4. Tabs & Checklist (大戶條件卡片群) */
 .whale-tabs-wrap {
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #0E1622;
+    border: 1px solid #1E2C3D;
     border-radius: 8px;
     overflow: hidden;
-    margin-bottom: 10px;
 }
 
 .whale-tabs-nav {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: #0A1017;
+    border-bottom: 1px solid #1E2C3D;
 }
 
 .w-tab-btn {
-    background: rgba(255, 255, 255, 0.03);
+    background: transparent;
     border: none;
-    color: #90A4AE;
-    padding: 8px 4px;
-    font-size: 11px;
-    font-weight: 600;
+    color: #94A3B8;
+    padding: 10px 8px;
+    font-size: 12px;
+    font-weight: 700;
     cursor: pointer;
     transition: 0.2s;
     text-align: center;
 }
 
 .w-tab-btn:hover {
-    color: #FFF;
-    background: rgba(255, 255, 255, 0.06);
+    color: #F8FAFC;
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .w-tab-btn.active {
-    color: #FFF;
-    background: rgba(255, 255, 255, 0.1);
-    border-bottom: 2px solid var(--gold-primary, #FFD700);
+    color: #F8FAFC;
+    background: #141E2C;
+    border-bottom: 3px solid #38BDF8;
+}
+
+.w-tab-btn#tabBtnBuy.active {
+    border-bottom-color: #00E676;
+}
+
+.w-tab-btn#tabBtnSell.active {
+    border-bottom-color: #FF4444;
 }
 
 .w-tab-content {
     display: none;
-    padding: 8px 10px;
+    padding: 10px;
 }
 
 .w-tab-content.active {
@@ -2793,79 +2875,157 @@ input:checked + .slider:before {
 .w-checklist {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
 .w-check-item {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 5px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #131B26;
+    border: 1px solid #1C2736;
+    transition: all 0.2s ease;
 }
 
 .w-check-item.triggered {
-    background: rgba(0, 230, 118, 0.06);
-    border-color: rgba(0, 230, 118, 0.2);
+    background: #092115;
+    border-color: #00E676;
+    box-shadow: 0 0 10px rgba(0, 230, 118, 0.15);
 }
 
 .w-check-item.triggered.sell-type {
-    background: rgba(255, 75, 75, 0.06);
-    border-color: rgba(255, 75, 75, 0.2);
+    background: #240C0E;
+    border-color: #FF4444;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.15);
 }
 
 .w-check-icon {
-    font-size: 13px;
+    font-size: 15px;
     margin-top: 1px;
 }
 
-.w-check-icon.active-sell { color: #FF5252; }
-.w-check-icon.active-buy { color: #00E676; }
-.w-check-icon.inactive { color: #546E7A; }
+.w-check-icon.active-sell {
+    color: #FF4444;
+    filter: drop-shadow(0 0 5px rgba(255, 68, 68, 0.6));
+}
+
+.w-check-icon.active-buy {
+    color: #00E676;
+    filter: drop-shadow(0 0 5px rgba(0, 230, 118, 0.6));
+}
+
+.w-check-icon.inactive {
+    color: #475569;
+}
 
 .w-check-body {
     flex: 1;
 }
 
 .w-check-title {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
-    color: #ECEFF1;
+    color: #F8FAFC;
     display: flex;
     justify-content: space-between;
+    align-items: center;
+}
+
+.w-check-status-badge {
+    font-size: 10.5px;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-weight: 700;
+}
+
+.w-check-status-badge.active-buy {
+    background: rgba(0, 230, 118, 0.2);
+    color: #00E676;
+    border: 1px solid rgba(0, 230, 118, 0.4);
+}
+
+.w-check-status-badge.active-sell {
+    background: rgba(255, 68, 68, 0.2);
+    color: #FF4444;
+    border: 1px solid rgba(255, 68, 68, 0.4);
+}
+
+.w-check-status-badge.inactive {
+    background: rgba(100, 116, 139, 0.15);
+    color: #94A3B8;
+    border: 1px solid rgba(100, 116, 139, 0.25);
 }
 
 .w-check-desc {
-    font-size: 10px;
-    color: #90A4AE;
-    margin-top: 2px;
+    font-size: 11px;
+    color: #94A3B8;
+    margin-top: 3px;
+    line-height: 1.4;
 }
 
-/* 5. Daily Toast */
+.w-check-item.triggered .w-check-desc {
+    color: #CBD5E1;
+}
+
+/* 5. Daily Toast (每日大戶廣播醒目區塊) */
 .whale-daily-toast {
-    background: rgba(255, 215, 0, 0.06);
-    border: 1px dashed rgba(255, 215, 0, 0.3);
-    border-radius: 6px;
-    padding: 8px 10px;
+    background: #141C16;
+    border: 1px solid #00E676;
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: 0 0 15px rgba(0, 230, 118, 0.12);
 }
 
 .w-toast-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #FFD700;
-    margin-bottom: 4px;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #00E676;
+    margin-bottom: 5px;
 }
 
 .w-toast-text {
-    font-size: 10.5px;
-    color: #E0E0E0;
-    line-height: 1.4;
+    font-size: 11.5px;
+    color: #F1F5F9;
+    line-height: 1.5;
 }
+
+/* 輔助醒目高亮標籤 (用於文字強調) */
+.hl-green {
+    color: #00E676 !important;
+    font-weight: 700;
+}
+
+.hl-red {
+    color: #FF4444 !important;
+    font-weight: 700;
+}
+
+.hl-gold {
+    color: #F59E0B !important;
+    font-weight: 700;
+}
+
+.hl-badge-green {
+    background: rgba(0, 230, 118, 0.2);
+    color: #00E676;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+}
+
+.hl-badge-red {
+    background: rgba(255, 68, 68, 0.2);
+    color: #FF4444;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+}
+
 
 
 

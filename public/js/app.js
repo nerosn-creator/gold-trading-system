@@ -830,11 +830,32 @@ document.addEventListener("DOMContentLoaded", () => {
                 decisionBox.className = `whale-decision-box ${cls}`;
             }
 
-            if (signalTag) signalTag.textContent = data.action_badge || "分析完成";
-            if (headlineText) headlineText.textContent = data.headline || "";
-            if (adviceText) adviceText.textContent = data.simple_advice || "";
-            if (dateBadge && data.date) dateBadge.textContent = `📅 ${data.date} 判定`;
-            if (toastText) toastText.textContent = data.daily_alert_text || "";
+            if (signalTag) {
+                signalTag.innerHTML = data.action_badge || "分析完成";
+            }
+            if (headlineText) {
+                headlineText.innerHTML = data.headline || "";
+            }
+            if (adviceText) {
+                let adviceHtml = data.simple_advice || "";
+                adviceHtml = adviceHtml.replace(/【(.*?)】/g, '<b class="hl-gold">【$1】</b>');
+                adviceHtml = adviceHtml.replace(/(-\d+\.?\d*\%|\+\d+\.?\d*\%)/g, '<b class="hl-green">$1</b>');
+                adviceHtml = adviceHtml.replace(/(\$4\d{3}\.?\d*)/g, '<b class="hl-gold">$1</b>');
+                adviceHtml = adviceHtml.replace(/(第一批買進|分批加碼|買進機會|逢低回購|回補黃金坑)/g, '<span class="hl-badge-green">$1</span>');
+                adviceHtml = adviceHtml.replace(/(獲利了結|分批出場|全數落袋|謹防大跌)/g, '<span class="hl-badge-red">$1</span>');
+                adviceText.innerHTML = adviceHtml;
+            }
+            if (dateBadge && data.date) {
+                dateBadge.innerHTML = `📅 <b>${data.date}</b> 判定`;
+            }
+            if (toastText) {
+                let toastHtml = data.daily_alert_text || "";
+                toastHtml = toastHtml.replace(/🟢|🔴|⚠️/g, '');
+                toastHtml = toastHtml.replace(/【(.*?)】/g, '<b class="hl-green">【$1】</b>');
+                toastHtml = toastHtml.replace(/(-\d+\.?\d*\%|\+\d+\.?\d*\%)/g, '<b class="hl-green">$1</b>');
+                toastHtml = toastHtml.replace(/(\$4\d{3}\.?\d*)/g, '<b class="hl-gold">$1</b>');
+                toastText.innerHTML = toastHtml;
+            }
 
             // 2. Metrics & Progress Bars
             const wmGainLow = document.getElementById("wmGainLow");
@@ -847,14 +868,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (wmGainLow) wmGainLow.textContent = `${gainPct >= 0 ? "+" : ""}${gainPct.toFixed(1)}%`;
             if (wmGainBar) {
-                // Scale 0% ~ 20% to 0% ~ 100% width
                 const barW = Math.min(100, Math.max(0, (gainPct / 20) * 100));
                 wmGainBar.style.width = `${barW}%`;
             }
 
             if (wmDropHigh) wmDropHigh.textContent = `${dropPct.toFixed(1)}%`;
             if (wmDropBar) {
-                // Scale 0% ~ -18% to 0% ~ 100% width
                 const barW = Math.min(100, Math.max(0, (Math.abs(dropPct) / 18) * 100));
                 wmDropBar.style.width = `${barW}%`;
             }
@@ -868,19 +887,22 @@ document.addEventListener("DOMContentLoaded", () => {
             if (waBias200) {
                 const b = data.bias_200sma_pct || 0;
                 waBias200.textContent = `${b >= 0 ? "+" : ""}${b.toFixed(1)}%`;
-                waBias200.style.color = b >= 15 ? "#FF5252" : "#ECEFF1";
+                waBias200.style.color = b >= 15 ? "#FF4444" : (b <= -10 ? "#00E676" : "#F8FAFC");
             }
             if (waDist50) {
                 const d50 = data.dist_50sma_pct || 0;
                 waDist50.textContent = `${d50 >= 0 ? "+" : ""}${d50.toFixed(1)}%`;
+                waDist50.style.color = Math.abs(d50) <= 2.5 ? "#00E676" : "#F8FAFC";
             }
             if (waFibRet) {
-                waFibRet.textContent = `${(data.fib_retrace_pct || 0).toFixed(1)}%`;
+                const fib = (data.fib_retrace_pct || 0).toFixed(1);
+                waFibRet.textContent = `${fib}%`;
+                waFibRet.style.color = parseFloat(fib) >= 38.2 ? "#00E676" : "#F8FAFC";
             }
             if (waRsi) {
                 const r = data.rsi_14 || 50;
                 waRsi.textContent = r.toFixed(1);
-                waRsi.style.color = r >= 70 ? "#FF5252" : (r <= 40 ? "#00E676" : "#ECEFF1");
+                waRsi.style.color = r >= 70 ? "#FF4444" : (r <= 40 ? "#00E676" : "#F8FAFC");
             }
 
             // 4. Checklists
@@ -895,11 +917,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     const trig = item.triggered;
                     return `
                         <div class="w-check-item ${trig ? 'triggered sell-type' : ''}">
-                            <i class="${trig ? 'fa-solid fa-circle-exclamation w-check-icon active-sell' : 'fa-regular fa-circle w-check-icon inactive'}"></i>
+                            <i class="${trig ? 'fa-solid fa-triangle-exclamation w-check-icon active-sell' : 'fa-regular fa-circle w-check-icon inactive'}"></i>
                             <div class="w-check-body">
                                 <div class="w-check-title">
                                     <span>${item.title}</span>
-                                    <span style="color: ${trig ? '#FF5252' : '#78909C'}; font-size: 10px;">${trig ? '已觸發 ⚠️' : '未達門檻'}</span>
+                                    <span class="w-check-status-badge ${trig ? 'active-sell' : 'inactive'}">${trig ? '已觸發 ⚠️' : '未達門檻'}</span>
                                 </div>
                                 <div class="w-check-desc">${item.desc}</div>
                             </div>
@@ -918,7 +940,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <div class="w-check-body">
                                 <div class="w-check-title">
                                     <span>${item.title}</span>
-                                    <span style="color: ${trig ? '#00E676' : '#78909C'}; font-size: 10px;">${trig ? '已滿足 ✅' : '未達門檻'}</span>
+                                    <span class="w-check-status-badge ${trig ? 'active-buy' : 'inactive'}">${trig ? '已滿足 ✅' : '未達門檻'}</span>
                                 </div>
                                 <div class="w-check-desc">${item.desc}</div>
                             </div>

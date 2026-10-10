@@ -196,7 +196,7 @@
                 </div>
 
                 <!-- Institutional Whale Wave & Decision Radar Card (大戶獲利了結 / 逢低回購波段雷達 - 移至左側寬版) -->
-                <div class="card whale-card wide-layout" id="whaleRadarCard">
+                <div class="card whale-card wide-layout alert-buy" id="whaleRadarCard">
                     <div class="card-header whale-wide-header">
                         <div class="card-title-flex">
                             <i class="fa-solid fa-satellite-dish whale-radar-icon"></i>
@@ -206,7 +206,7 @@
                             </div>
                         </div>
                         <div class="whale-header-badges">
-                            <span id="whaleDateBadge" class="whale-badge-date">每日更新中</span>
+                            <span id="whaleDateBadge" class="whale-badge-date">📅 2026-10-10 判定</span>
                             <button id="btnSendWhaleTelegram" class="btn-xs btn-tg-mini" title="將今日大戶雷達分析立即推播至 Telegram">
                                 <i class="fa-brands fa-telegram"></i> 每日推播至 Telegram
                             </button>
@@ -218,31 +218,31 @@
                         <!-- Left Column: Big Decision Box + Wave Meters + Daily Toast -->
                         <div class="whale-col-left">
                             <!-- 1. Super Clear Decision Box (大白話1秒看懂買或賣) -->
-                            <div id="whaleDecisionBox" class="whale-decision-box neutral">
+                            <div id="whaleDecisionBox" class="whale-decision-box buy">
                                 <div class="whale-decision-top">
-                                    <span class="whale-signal-tag" id="whaleSignalTag">分析中...</span>
+                                    <span class="whale-signal-tag" id="whaleSignalTag">🟢 大戶逢低回補（建議分批加碼）</span>
                                     <span class="whale-period-tag"><i class="fa-regular fa-calendar-days"></i> 大盤近30天走勢</span>
                                 </div>
-                                <div id="whaleHeadlineText" class="whale-headline">正在讀取大盤近一個月走勢...</div>
-                                <div id="whaleAdviceText" class="whale-advice-body">載入大戶獲利了結與回購信號中...</div>
+                                <div id="whaleHeadlineText" class="whale-headline">🟢 機會：大盤自高點已回跌 -10.7%，進入大戶逢低回購區！</div>
+                                <div id="whaleAdviceText" class="whale-advice-body"><b class="hl-gold">【常態回檔・分批布局】</b>累計跌幅達 <b class="hl-green">-10.7%</b>，符合歷史 -8%~-10% 的「多頭黃金坑」，且靠近關鍵均線支撐，大戶買盤開始進場護盤，建議啟動<span class="hl-badge-green">第一批買進</span>！</div>
                             </div>
 
                             <!-- 2. One-Month Wave Progress & Meters (近一個月波段數據量化) -->
                             <div class="whale-metrics-grid">
                                 <div class="wm-card">
                                     <span class="wm-lbl"><i class="fa-solid fa-arrow-trend-up"></i> 近月從低點累計漲幅</span>
-                                    <span id="wmGainLow" class="wm-val bullish">+0.0%</span>
+                                    <span id="wmGainLow" class="wm-val bullish">+2.5%</span>
                                     <span class="wm-hint">獲利了結警示線: <b>+15% ~ +18%</b></span>
                                     <div class="wm-bar-track">
-                                        <div id="wmGainBar" class="wm-bar-fill red" style="width: 0%;"></div>
+                                        <div id="wmGainBar" class="wm-bar-fill red" style="width: 12.5%;"></div>
                                     </div>
                                 </div>
                                 <div class="wm-card">
                                     <span class="wm-lbl"><i class="fa-solid fa-arrow-trend-down"></i> 近月自高點回檔幅度</span>
-                                    <span id="wmDropHigh" class="wm-val bearish">-0.0%</span>
+                                    <span id="wmDropHigh" class="wm-val bearish">-10.7%</span>
                                     <span class="wm-hint">大戶回補黃金坑: <b>-8% ~ -13%</b></span>
                                     <div class="wm-bar-track">
-                                        <div id="wmDropBar" class="wm-bar-fill green" style="width: 0%;"></div>
+                                        <div id="wmDropBar" class="wm-bar-fill green" style="width: 59.5%;"></div>
                                     </div>
                                 </div>
                             </div>
@@ -253,7 +253,7 @@
                                     <i class="fa-solid fa-bell gold-icon"></i>
                                     <span>每日大戶廣播提醒</span>
                                 </div>
-                                <div id="whaleToastText" class="w-toast-text">載入今日提醒中...</div>
+                                <div id="whaleToastText" class="w-toast-text"><b class="hl-green">【每日大戶動向提醒】</b>金價自高點已修正 <b class="hl-green">-10.7%</b> (現報 <b class="hl-gold">$4186.3</b>)，打入歷史大戶逢低回購黃金坑！關鍵支撐已現，建議把握分批佈局買進機會！</div>
                             </div>
                         </div>
 
@@ -263,48 +263,126 @@
                             <div class="whale-anchors-row">
                                 <div class="wa-item">
                                     <span class="wa-lbl">偏離200日線</span>
-                                    <span id="waBias200" class="wa-val">0.0%</span>
+                                    <span id="waBias200" class="wa-val" style="color: #F8FAFC;">-4.4%</span>
                                     <span class="wa-sub">警示: ≥+15%</span>
                                 </div>
                                 <div class="wa-item">
                                     <span class="wa-lbl">距50日均線</span>
-                                    <span id="waDist50" class="wa-val">0.0%</span>
+                                    <span id="waDist50" class="wa-val" style="color: #F8FAFC;">-3.6%</span>
                                     <span class="wa-sub">防線: ±2.5%</span>
                                 </div>
                                 <div class="wa-item">
                                     <span class="wa-lbl">波段回撤</span>
-                                    <span id="waFibRet" class="wa-val">0.0%</span>
+                                    <span id="waFibRet" class="wa-val" style="color: #00E676;">64.9%</span>
                                     <span class="wa-sub">支撐: 38%/50%</span>
                                 </div>
                                 <div class="wa-item">
                                     <span class="wa-lbl">RSI指數</span>
-                                    <span id="waRsi" class="wa-val">0.0</span>
-                                    <span class="wa-sub">過熱: ≥72</span>
+                                    <span id="waRsi" class="wa-val" style="color: #00E676;">39.3</span>
+                                    <span class="wa-sub">超賣: ≤40</span>
                                 </div>
                             </div>
 
                             <!-- 4. Interactive Criteria Checklists (大戶出場 4 條件 vs 大戶回購 4 條件) -->
                             <div class="whale-tabs-wrap">
                                 <div class="whale-tabs-nav">
-                                    <button id="tabBtnSell" class="w-tab-btn active" type="button">
-                                        🔴 大戶獲利出場 4 條件 (<span id="sellScoreBadge">0/4</span>)
+                                    <button id="tabBtnBuy" class="w-tab-btn active" type="button">
+                                        🟢 大戶逢低回購 4 條件 (<span id="buyScoreBadge">3/4</span>)
                                     </button>
-                                    <button id="tabBtnBuy" class="w-tab-btn" type="button">
-                                        🟢 大戶逢低回購 4 條件 (<span id="buyScoreBadge">0/4</span>)
+                                    <button id="tabBtnSell" class="w-tab-btn" type="button">
+                                        🔴 大戶獲利出場 4 條件 (<span id="sellScoreBadge">0/4</span>)
                                     </button>
                                 </div>
 
-                                <!-- Sell Criteria Content -->
-                                <div id="sellCriteriaTab" class="w-tab-content active">
-                                    <div class="w-checklist" id="sellChecklistContainer">
-                                        <!-- Populated dynamically -->
+                                <!-- Buy Criteria Content (Active by default for buy alert) -->
+                                <div id="buyCriteriaTab" class="w-tab-content active">
+                                    <div class="w-checklist" id="buyChecklistContainer">
+                                        <div class="w-check-item triggered">
+                                            <i class="fa-solid fa-circle-check w-check-icon active-buy"></i>
+                                            <div class="w-check-body">
+                                                <div class="w-check-title">
+                                                    <span>1. 跌幅達 -8%~-10% (常態) 或 -13%~-15% (深洗)</span>
+                                                    <span class="w-check-status-badge active-buy">已滿足 ✅</span>
+                                                </div>
+                                                <div class="w-check-desc">自波段高點已回檔修正: -10.7% (門檻: ≤-7.5%)</div>
+                                            </div>
+                                        </div>
+                                        <div class="w-check-item">
+                                            <i class="fa-regular fa-circle w-check-icon inactive"></i>
+                                            <div class="w-check-body">
+                                                <div class="w-check-title">
+                                                    <span>2. 碰觸關鍵均線 (50-DMA 或 200-DMA)</span>
+                                                    <span class="w-check-status-badge inactive">未達門檻</span>
+                                                </div>
+                                                <div class="w-check-desc">距 50 日線 -3.6% / 距 200 日線 -4.4%</div>
+                                            </div>
+                                        </div>
+                                        <div class="w-check-item triggered">
+                                            <i class="fa-solid fa-circle-check w-check-icon active-buy"></i>
+                                            <div class="w-check-body">
+                                                <div class="w-check-title">
+                                                    <span>3. 斐波那契回撤達到 38.2% 或 50%</span>
+                                                    <span class="w-check-status-badge active-buy">已滿足 ✅</span>
+                                                </div>
+                                                <div class="w-check-desc">波段回撤幅度比例: 64.9% (門檻: ≥38.2%)</div>
+                                            </div>
+                                        </div>
+                                        <div class="w-check-item triggered">
+                                            <i class="fa-solid fa-circle-check w-check-icon active-buy"></i>
+                                            <div class="w-check-body">
+                                                <div class="w-check-title">
+                                                    <span>4. 散戶融資斷頭清洗 / 爆量長下影線</span>
+                                                    <span class="w-check-status-badge active-buy">已滿足 ✅</span>
+                                                </div>
+                                                <div class="w-check-desc">近期出現探底回升長下影線或超賣低檔鈍化</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <!-- Buy Criteria Content -->
-                                <div id="buyCriteriaTab" class="w-tab-content">
-                                    <div class="w-checklist" id="buyChecklistContainer">
-                                        <!-- Populated dynamically -->
+                                <!-- Sell Criteria Content -->
+                                <div id="sellCriteriaTab" class="w-tab-content">
+                                    <div class="w-checklist" id="sellChecklistContainer">
+                                        <div class="w-check-item">
+                                            <i class="fa-regular fa-circle w-check-icon inactive"></i>
+                                            <div class="w-check-body">
+                                                <div class="w-check-title">
+                                                    <span>1. 累積漲幅達 +15% ~ +18%</span>
+                                                    <span class="w-check-status-badge inactive">未達門檻</span>
+                                                </div>
+                                                <div class="w-check-desc">近月從低點最大累積漲幅: +2.5% (門檻: ≥+15%)</div>
+                                            </div>
+                                        </div>
+                                        <div class="w-check-item">
+                                            <i class="fa-regular fa-circle w-check-icon inactive"></i>
+                                            <div class="w-check-body">
+                                                <div class="w-check-title">
+                                                    <span>2. 價格偏離 200 日線超過 +15%</span>
+                                                    <span class="w-check-status-badge inactive">未達門檻</span>
+                                                </div>
+                                                <div class="w-check-desc">當前偏離 200 日均線乖離率: -4.4% (門檻: ≥+15%)</div>
+                                            </div>
+                                        </div>
+                                        <div class="w-check-item">
+                                            <i class="fa-regular fa-circle w-check-icon inactive"></i>
+                                            <div class="w-check-body">
+                                                <div class="w-check-title">
+                                                    <span>3. CFTC COT 淨多頭擁擠 / 過熱</span>
+                                                    <span class="w-check-status-badge inactive">未達門檻</span>
+                                                </div>
+                                                <div class="w-check-desc">RSI 亢奮指數: 39.3 (門檻: ≥72 或市場極端擁擠)</div>
+                                            </div>
+                                        </div>
+                                        <div class="w-check-item">
+                                            <i class="fa-regular fa-circle w-check-icon inactive"></i>
+                                            <div class="w-check-body">
+                                                <div class="w-check-title">
+                                                    <span>4. 各國央行高位暫緩採購 / 頂部滯漲</span>
+                                                    <span class="w-check-status-badge inactive">未達門檻</span>
+                                                </div>
+                                                <div class="w-check-desc">接近歷史天價 ($4689.0)，大戶高位追買意願停滯</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
