@@ -23,8 +23,6 @@ def fetch_firstbank_forex_rates() -> Tuple[float, float]:
     }
 
     ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
 
     payload = json.dumps({"header": {}, "body": {}}).encode('utf-8')
 
@@ -65,8 +63,6 @@ def fetch_firstbank_gold_rates(spot_price_usd: float = 4450.0) -> Dict[str, Any]
     }
 
     ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
 
     payload = json.dumps({"header": {}, "body": {}}).encode('utf-8')
 

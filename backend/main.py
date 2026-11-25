@@ -1,11 +1,18 @@
 import sys
 import os
+import re
+import time
+import hmac
+import math
+import threading
+from collections import defaultdict
+from urllib.parse import urlparse
 import pandas as pd
 
 # Add current directory to sys.path for relative imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -20,6 +27,63 @@ import alert_service
 
 app = FastAPI(title="Gold Trading Signal System API", version="1.0.0")
 
+# --- Security Helpers ---
+ALLOWED_SYMBOLS = {"XAUUSD", "SPOT", "XAU", "FUTURES", "GC=F", "GLD"}
+ALLOWED_INTERVALS = {"1m", "5m", "15m", "1h", "4h", "1d"}
+ALLOWED_ALERT_UNITS = {"gram", "chien", "usd_oz"}
+ALLOWED_COMPARISONS = {"lte", "gte"}
+TIME_HHMM_RE = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+
+_rate_limit_lock = threading.Lock()
+_rate_limit_buckets = defaultdict(list)
+
+
+def _validate_symbol(symbol: str) -> str:
+    sym = (symbol or "XAUUSD").strip().upper()
+    if sym not in ALLOWED_SYMBOLS:
+        raise HTTPException(status_code=400, detail="不支援的商品代碼")
+    return sym
+
+
+def _validate_interval(interval: str) -> str:
+    iv = (interval or "1h").strip().lower()
+    if iv not in ALLOWED_INTERVALS:
+        raise HTTPException(status_code=400, detail="不支援的時間週期")
+    return iv
+
+
+def _verify_admin_key(request: Request):
+    """If ADMIN_API_KEY env var is set, require matching X-Admin-Key header."""
+    expected = os.environ.get("ADMIN_API_KEY", "").strip()
+    if not expected:
+        return
+    provided = (request.headers.get("X-Admin-Key") or "").strip()
+    if not provided or not hmac.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="未授權的操作：缺少或無效的管理金鑰")
+
+
+def _check_rate_limit(bucket: str, request: Request, limit: int, window_sec: int):
+    client_ip = request.client.host if request.client else "unknown"
+    key = f"{bucket}:{client_ip}"
+    now = time.time()
+    with _rate_limit_lock:
+        timestamps = [t for t in _rate_limit_buckets[key] if now - t < window_sec]
+        if len(timestamps) >= limit:
+            raise HTTPException(status_code=429, detail="請求過於頻繁，請稍後再試")
+        timestamps.append(now)
+        _rate_limit_buckets[key] = timestamps
+
+
+def _get_safe_sync_url() -> str:
+    url = os.environ.get("ALERT_SYNC_URL", "").strip().rstrip("/")
+    if not url:
+        return ""
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        return ""
+    return url
+
+
 @app.on_event("startup")
 def startup_event():
     # Only run background alert monitor on long-running persistent host (not serverless like Vercel/Lambda)
@@ -30,17 +94,35 @@ def startup_event():
         except Exception as e:
             print(f"Failed to start alert monitor: {e}")
 
+_allowed_origins_env = os.environ.get("ALLOWED_ORIGINS", "").strip()
+if _allowed_origins_env:
+    _cors_origins = [o.strip() for o in _allowed_origins_env.split(",") if o.strip()]
+else:
+    _cors_origins = ["http://localhost:8084", "http://127.0.0.1:8084"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Admin-Key"],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    return response
 
 @app.get("/api/gold/candles")
 def api_get_candles(symbol: str = "XAUUSD", interval: str = "1h"):
     """Fetch candles with technical indicators and signals for charting."""
+    symbol = _validate_symbol(symbol)
+    interval = _validate_interval(interval)
     df = get_gold_candles(symbol, interval)
     df = calculate_indicators(df)
     df = generate_signals(df)
@@ -69,6 +151,8 @@ def api_get_candles(symbol: str = "XAUUSD", interval: str = "1h"):
 @app.get("/api/gold/summary")
 def api_get_summary(symbol: str = "XAUUSD", interval: str = "1h"):
     """Get current gold signal summary and indicator state."""
+    symbol = _validate_symbol(symbol)
+    interval = _validate_interval(interval)
     df = get_gold_candles(symbol, interval)
     df = calculate_indicators(df)
     df = generate_signals(df)
@@ -78,6 +162,10 @@ def api_get_summary(symbol: str = "XAUUSD", interval: str = "1h"):
 @app.get("/api/gold/backtest")
 def api_get_backtest(symbol: str = "XAUUSD", interval: str = "1h", capital: float = 10000.0):
     """Run historical backtest on current signals."""
+    symbol = _validate_symbol(symbol)
+    interval = _validate_interval(interval)
+    if not math.isfinite(capital) or capital <= 0 or capital > 1e9:
+        raise HTTPException(status_code=400, detail="初始資金必須介於 0 與 1,000,000,000 之間")
     df = get_gold_candles(symbol, interval)
     df = calculate_indicators(df)
     df = generate_signals(df)
@@ -85,10 +173,14 @@ def api_get_backtest(symbol: str = "XAUUSD", interval: str = "1h", capital: floa
     return result
 
 @app.post("/api/gold/optimize")
-def api_run_optimization(symbol: str = "XAUUSD", interval: str = "1d"):
+def api_run_optimization(request: Request, symbol: str = "XAUUSD", interval: str = "1d"):
     """
     Triggers AI auto-evolution optimizer to tune indicator weights and maximize win rate.
     """
+    _verify_admin_key(request)
+    _check_rate_limit("optimize", request, limit=3, window_sec=60)
+    symbol = _validate_symbol(symbol)
+    interval = _validate_interval(interval)
     from strategy_optimizer import auto_optimize_strategy, load_evolved_weights
     df = get_gold_candles(symbol, interval)
     df = calculate_indicators(df)
@@ -116,6 +208,7 @@ def api_get_longterm(symbol: str = "XAUUSD"):
     4. Accumulate Zone: Bounded by max(fib_382, sma_50) ~ current_price * 0.99.
     5. Target Prices: Projected via 6% (3M) and 12% (6M) expected multi-month trend expansions.
     """
+    symbol = _validate_symbol(symbol)
     df = get_gold_candles(symbol, "1d")
     if df.empty or len(df) < 50:
         return {"status": "ERROR", "message": "insufficient data"}
@@ -181,14 +274,17 @@ def api_get_whale_radar(symbol: str = "XAUUSD"):
     """
     Returns 1-month wave analysis of institutional whale profit-taking vs dip-buying status.
     """
+    symbol = _validate_symbol(symbol)
     from whale_detector import analyze_whale_radar
     return analyze_whale_radar(symbol)
 
 @app.post("/api/gold/whale-radar/send-telegram")
-def api_send_whale_radar_telegram():
+def api_send_whale_radar_telegram(request: Request):
     """
     Triggers sending the daily whale radar summary to Telegram.
     """
+    _verify_admin_key(request)
+    _check_rate_limit("whale_tg", request, limit=3, window_sec=60)
     success, msg = alert_service.send_whale_radar_telegram(force=True)
     return {
         "status": "SUCCESS" if success else "ERROR",
@@ -201,6 +297,7 @@ def api_get_firstbank_rates(symbol: str = "XAUUSD"):
     Returns live First Bank TWD Gold Passbook buy/sell exchange rates.
     Target link: https://mobile.firstbank.com.tw/c1/cheetah/zh/07/gold/rate?channel=X
     """
+    symbol = _validate_symbol(symbol)
     from firstbank_gold import fetch_firstbank_gold_rates
     df = get_gold_candles(symbol, "1m")
     current_price = float(df.iloc[-1]['close']) if not df.empty else 4450.0
@@ -209,23 +306,29 @@ def api_get_firstbank_rates(symbol: str = "XAUUSD"):
 
 @app.get("/api/alerts/settings")
 def api_get_alert_settings():
-    """Get current First Bank gold alert settings and current market prices."""
+    """Get current First Bank gold alert settings (with bot_token masked) and current market prices."""
     import requests
     is_serverless = "VERCEL" in os.environ or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
     if is_serverless:
-        sync_url = os.environ.get("ALERT_SYNC_URL", "https://rethink-guacamole-curve.ngrok-free.dev")
-        try:
-            r = requests.get(
-                f"{sync_url}/api/alerts/settings",
-                headers={"ngrok-skip-browser-warning": "1"},
-                timeout=2.0
-            )
-            if r.status_code == 200:
-                data = r.json()
-                if data.get("status") == "SUCCESS" and "settings" in data:
-                    return data
-        except Exception:
-            pass
+        sync_url = _get_safe_sync_url()
+        if sync_url:
+            try:
+                headers = {"ngrok-skip-browser-warning": "1"}
+                admin_key = os.environ.get("ADMIN_API_KEY", "").strip()
+                if admin_key:
+                    headers["X-Admin-Key"] = admin_key
+                r = requests.get(
+                    f"{sync_url}/api/alerts/settings",
+                    headers=headers,
+                    timeout=2.0
+                )
+                if r.status_code == 200:
+                    data = r.json()
+                    if data.get("status") == "SUCCESS" and "settings" in data:
+                        data["settings"] = alert_service.mask_alert_settings(data["settings"])
+                        return data
+            except Exception:
+                pass
 
     settings = alert_service.load_alert_settings()
     from firstbank_gold import fetch_firstbank_gold_rates
@@ -235,41 +338,95 @@ def api_get_alert_settings():
         current_rates = {}
     return {
         "status": "SUCCESS",
-        "settings": settings,
+        "settings": alert_service.mask_alert_settings(settings),
         "current_rates": current_rates
     }
 
 @app.post("/api/alerts/settings")
 async def api_save_alert_settings(request: Request):
     """Save First Bank gold price alert settings."""
+    _verify_admin_key(request)
+    _check_rate_limit("alert_save", request, limit=15, window_sec=60)
     import requests
-    data = await request.json()
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="無效的 JSON 請求內容")
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="設定格式錯誤")
+
     is_serverless = "VERCEL" in os.environ or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
 
-    # If running on serverless (e.g. Vercel), forward the update to the persistent runner tunnel
-    if is_serverless:
-        sync_url = os.environ.get("ALERT_SYNC_URL", "https://rethink-guacamole-curve.ngrok-free.dev")
-        try:
-            requests.post(
-                f"{sync_url}/api/alerts/settings",
-                json=data,
-                headers={"ngrok-skip-browser-warning": "1"},
-                timeout=3.0
-            )
-        except Exception as e:
-            print(f"Forward to local runner error: {e}")
-
     settings = alert_service.load_alert_settings()
+
+    # Validate fields before applying
+    if "unit" in data and data["unit"] not in ALLOWED_ALERT_UNITS:
+        raise HTTPException(status_code=400, detail="無效的計價單位")
+    if "comparison" in data and data["comparison"] not in ALLOWED_COMPARISONS:
+        raise HTTPException(status_code=400, detail="無效的比較條件")
+    if "target_price" in data:
+        try:
+            tp_val = float(data["target_price"])
+            if not math.isfinite(tp_val) or tp_val < 0 or tp_val > 1e7:
+                raise ValueError()
+            data["target_price"] = tp_val
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="目標價格必須為有效的正數")
+    if "cooldown_minutes" in data:
+        try:
+            cd_val = int(data["cooldown_minutes"])
+            if cd_val < 1 or cd_val > 1440:
+                raise ValueError()
+            data["cooldown_minutes"] = cd_val
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="冷卻時間必須介於 1 到 1440 分鐘")
+    for time_field in ("quiet_hours_start", "quiet_hours_end"):
+        if time_field in data and data[time_field]:
+            if not TIME_HHMM_RE.match(str(data[time_field]).strip()):
+                raise HTTPException(status_code=400, detail="勿擾時間格式必須為 HH:MM")
+
+    # Preserve stored bot_token if client left it blank (since GET masks bot_token)
+    incoming_token = str(data.get("bot_token", "") or "").strip()
+    if incoming_token:
+        if not alert_service.validate_bot_token(incoming_token):
+            raise HTTPException(status_code=400, detail="Telegram Bot Token 格式無效")
+        settings["bot_token"] = incoming_token
+
+    if "chat_id" in data:
+        incoming_chat = str(data.get("chat_id", "") or "").strip()
+        if incoming_chat and not alert_service.validate_chat_id(incoming_chat):
+            raise HTTPException(status_code=400, detail="Telegram Chat ID 格式無效")
+        if incoming_chat:
+            settings["chat_id"] = incoming_chat
+
     for field in [
-        "enabled", "bot_token", "chat_id", "unit", "target_price",
+        "enabled", "unit", "target_price",
         "comparison", "cooldown_minutes", "quiet_hours_enabled",
         "quiet_hours_start", "quiet_hours_end", "updated_at"
     ]:
         if field in data:
             settings[field] = data[field]
     if "updated_at" not in data or not data.get("updated_at"):
-        import time
         settings["updated_at"] = int(time.time() * 1000)
+
+    # If running on serverless (e.g. Vercel), forward the update to the persistent runner tunnel if configured
+    if is_serverless:
+        sync_url = _get_safe_sync_url()
+        if sync_url:
+            try:
+                headers = {"ngrok-skip-browser-warning": "1"}
+                admin_key = os.environ.get("ADMIN_API_KEY", "").strip()
+                if admin_key:
+                    headers["X-Admin-Key"] = admin_key
+                requests.post(
+                    f"{sync_url}/api/alerts/settings",
+                    json=data,
+                    headers=headers,
+                    timeout=3.0
+                )
+            except Exception as e:
+                print(f"Forward to local runner error: {e}")
+
     alert_service.save_alert_settings(settings)
 
     if not is_serverless:
@@ -281,19 +438,26 @@ async def api_save_alert_settings(request: Request):
     return {
         "status": "SUCCESS",
         "message": "一銀黃金價格警報通知設定已成功儲存！",
-        "settings": settings
+        "settings": alert_service.mask_alert_settings(settings)
     }
 
 @app.post("/api/alerts/test")
 async def api_test_alert_telegram(request: Request):
     """Test send a verification notification to the specified Telegram Bot/Chat."""
-    data = await request.json()
-    bot_token = data.get("bot_token")
-    chat_id = data.get("chat_id")
+    _verify_admin_key(request)
+    _check_rate_limit("alert_test", request, limit=5, window_sec=60)
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="無效的請求格式")
+    bot_token = str(data.get("bot_token") or "").strip()
+    chat_id = str(data.get("chat_id") or "").strip()
     if not bot_token or not chat_id:
         settings = alert_service.load_alert_settings()
-        bot_token = bot_token or settings.get("bot_token")
-        chat_id = chat_id or settings.get("chat_id")
+        bot_token = bot_token or settings.get("bot_token", "")
+        chat_id = chat_id or settings.get("chat_id", "")
 
     if not bot_token or not chat_id:
         return {"status": "ERROR", "message": "請先填寫 Telegram Bot Token 與 Chat ID！"}
@@ -319,6 +483,7 @@ def api_get_spot_quote(symbol: str = "XAUUSD"):
     Returns live International Gold Spot Market quote matching TRUNEY / First Bank professional board,
     including intraday trend line points, TWD conversion, and COMEX futures spread.
     """
+    symbol = _validate_symbol(symbol)
     from datetime import datetime, timedelta
     import pytz
     from data_fetcher import generate_mock_gold_data, get_gold_candles
@@ -476,6 +641,7 @@ paper_account = load_paper_account_state()
 @app.get("/api/paper/account")
 def api_get_paper_account(symbol: str = "XAUUSD"):
     """Get current paper trading account status, open position, and equity."""
+    symbol = _validate_symbol(symbol)
     df = get_gold_candles(symbol, "1h")
     current_price = float(df.iloc[-1]['close']) if not df.empty else 4450.0
 
@@ -513,8 +679,16 @@ def api_get_paper_account(symbol: str = "XAUUSD"):
     }
 
 @app.post("/api/paper/trade")
-def api_place_paper_trade(side: str = Query(...), amount_oz: float = Query(1.0), symbol: str = "XAUUSD"):
+def api_place_paper_trade(request: Request, side: str = Query(...), amount_oz: float = Query(1.0), symbol: str = "XAUUSD"):
     """Place a paper buy or sell trade."""
+    _verify_admin_key(request)
+    symbol = _validate_symbol(symbol)
+    side_clean = (side or "").strip().upper()
+    if side_clean not in ("BUY", "SELL"):
+        raise HTTPException(status_code=400, detail="交易方向必須為 BUY 或 SELL")
+    if not math.isfinite(amount_oz) or amount_oz <= 0 or amount_oz > 10000:
+        raise HTTPException(status_code=400, detail="交易數量必須大於 0 且不超過 10,000 盎司")
+
     df = get_gold_candles(symbol, "1h")
     df = calculate_indicators(df)
     df = generate_signals(df)
@@ -528,7 +702,7 @@ def api_place_paper_trade(side: str = Query(...), amount_oz: float = Query(1.0),
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     new_pos = {
-        "side": side.upper(),
+        "side": side_clean,
         "entry_price": current_price,
         "amount_oz": amount_oz,
         "entry_time": now_str,
@@ -541,11 +715,13 @@ def api_place_paper_trade(side: str = Query(...), amount_oz: float = Query(1.0),
     paper_account["positions"].append(new_pos)
     save_paper_account_state()
 
-    return {"status": "SUCCESS", "message": f"成功建立模擬 {side.upper()} 持倉 ({amount_oz} 盎司)", "positions": paper_account["positions"]}
+    return {"status": "SUCCESS", "message": f"成功建立模擬 {side_clean} 持倉 ({amount_oz} 盎司)", "positions": paper_account["positions"]}
 
 @app.post("/api/paper/close")
-def api_close_paper_trade(symbol: str = "XAUUSD"):
+def api_close_paper_trade(request: Request, symbol: str = "XAUUSD"):
     """Close all active paper trades."""
+    _verify_admin_key(request)
+    symbol = _validate_symbol(symbol)
     positions = paper_account.get("positions", [])
     if paper_account.get("position") and paper_account["position"] not in positions:
         positions.append(paper_account["position"])
@@ -588,8 +764,9 @@ def api_close_paper_trade(symbol: str = "XAUUSD"):
     return {"status": "SUCCESS", "message": f"已全部平倉，本次總損益: ${total_profit:+.2f} USD"}
 
 @app.post("/api/paper/reset")
-def api_reset_paper_account():
+def api_reset_paper_account(request: Request):
     """Reset paper trading account."""
+    _verify_admin_key(request)
     paper_account["cash"] = paper_account["initial_balance"]
     paper_account["position"] = None
     paper_account["positions"] = []
@@ -645,13 +822,19 @@ def serve_index():
 @app.get("/{full_path:path}")
 def serve_catchall(full_path: str):
     if frontend_dir and not full_path.startswith("api/"):
-        file_path = os.path.join(frontend_dir, full_path)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(file_path)
+        # Strictly prevent path traversal / arbitrary file read
+        if "\x00" not in full_path and not full_path.startswith(("/", "\\")):
+            base_real = os.path.realpath(frontend_dir)
+            candidate_real = os.path.realpath(os.path.join(base_real, full_path))
+            try:
+                if os.path.commonpath([base_real, candidate_real]) == base_real and os.path.isfile(candidate_real):
+                    return FileResponse(candidate_real)
+            except ValueError:
+                pass
         index_path = os.path.join(frontend_dir, "index.html")
         if os.path.exists(index_path):
             return FileResponse(index_path)
-    return {"detail": "Not Found"}
+    raise HTTPException(status_code=404, detail="Not Found")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8084)

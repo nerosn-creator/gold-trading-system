@@ -8,3 +8,7 @@ __pycache__/
 venv/
 *cache.json
 paper_account.json
+alert_settings.json
+backend/alert_settings.json
+.env
+.env.*

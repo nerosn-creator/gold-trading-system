@@ -28,8 +28,6 @@ INTERVAL_MAP = {
 }
 
 ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
 
 def fetch_binance_spot_gold(interval="1h", limit=200):
     """

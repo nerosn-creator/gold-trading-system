@@ -1,4 +1,31 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // Security helpers to prevent DOM XSS and unsafe URL schemes
+    function escapeHtml(val) {
+        return String(val ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function safeHttpUrl(url) {
+        try {
+            const parsed = new URL(String(url || ""), window.location.origin);
+            if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+                return parsed.href;
+            }
+        } catch (e) {}
+        return "#";
+    }
+
+    function sanitizeSettingsForStorage(cfg) {
+        if (!cfg || typeof cfg !== "object") return cfg;
+        const copy = { ...cfg };
+        delete copy.bot_token; // Never persist plaintext Telegram Bot Token in localStorage
+        return copy;
+    }
+
     let currentTf = "1h";
     let chartManager = null;
 
@@ -476,28 +503,34 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (positions.length > 0 && paperPosStatus && paperPositionBox) {
-                let htmlContent = "";
+                paperPosStatus.innerHTML = "";
                 positions.forEach((pos, idx) => {
                     const sideIsBuy = pos.side === "BUY";
                     const sideClass = sideIsBuy ? "buy" : "sell";
                     const sideText = sideIsBuy ? "多" : "空";
                     const pnlSign = pos.currentPnl >= 0 ? "+" : "";
                     const pnlClass = pos.currentPnl >= 0 ? "bullish" : "bearish";
-                    const posId = pos.id || `pos_${idx}`;
+                    const posId = String(pos.id || `pos_${idx}`);
 
-                    htmlContent += `
-                        <div class="paper-pos-item ${sideClass}">
-                            <span class="pos-badge ${sideClass}">${sideText}</span>
-                            <div class="pos-info-text">
-                                <span>@ $${pos.entry_price.toFixed(2)} (${pos.amount_oz}oz)</span>
-                                <span class="pos-pnl ${pnlClass}">${pnlSign}$${pos.currentPnl.toFixed(2)}</span>
-                            </div>
-                            <button type="button" class="pos-single-close-btn" onclick="window.closeSinglePaperPos('${posId}')" title="平掉此單">平倉</button>
+                    const item = document.createElement("div");
+                    item.className = `paper-pos-item ${sideClass}`;
+                    item.innerHTML = `
+                        <span class="pos-badge ${sideClass}">${sideText}</span>
+                        <div class="pos-info-text">
+                            <span>@ $${Number(pos.entry_price).toFixed(2)} (${Number(pos.amount_oz)}oz)</span>
+                            <span class="pos-pnl ${pnlClass}">${pnlSign}$${Number(pos.currentPnl).toFixed(2)}</span>
                         </div>
                     `;
+                    const closeBtn = document.createElement("button");
+                    closeBtn.type = "button";
+                    closeBtn.className = "pos-single-close-btn";
+                    closeBtn.title = "平掉此單";
+                    closeBtn.textContent = "平倉";
+                    closeBtn.addEventListener("click", () => window.closeSinglePaperPos(posId));
+                    item.appendChild(closeBtn);
+                    paperPosStatus.appendChild(item);
                 });
 
-                paperPosStatus.innerHTML = htmlContent;
                 paperPositionBox.className = "paper-pos-box has-pos";
                 if (paperCloseBtn) paperCloseBtn.disabled = false;
             } else if (paperPosStatus && paperPositionBox) {
@@ -831,13 +864,13 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (signalTag) {
-                signalTag.innerHTML = data.action_badge || "分析完成";
+                signalTag.textContent = data.action_badge || "分析完成";
             }
             if (headlineText) {
-                headlineText.innerHTML = data.headline || "";
+                headlineText.textContent = data.headline || "";
             }
             if (adviceText) {
-                let adviceHtml = data.simple_advice || "";
+                let adviceHtml = escapeHtml(data.simple_advice || "");
                 adviceHtml = adviceHtml.replace(/【(.*?)】/g, '<b class="hl-gold">【$1】</b>');
                 adviceHtml = adviceHtml.replace(/(-\d+\.?\d*\%|\+\d+\.?\d*\%)/g, '<b class="hl-green">$1</b>');
                 adviceHtml = adviceHtml.replace(/(\$4\d{3}\.?\d*)/g, '<b class="hl-gold">$1</b>');
@@ -846,10 +879,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 adviceText.innerHTML = adviceHtml;
             }
             if (dateBadge && data.date) {
-                dateBadge.innerHTML = `📅 <b>${data.date}</b> 判定`;
+                dateBadge.innerHTML = `📅 <b>${escapeHtml(data.date)}</b> 判定`;
             }
             if (toastText) {
-                let toastHtml = data.daily_alert_text || "";
+                let toastHtml = escapeHtml(data.daily_alert_text || "");
                 toastHtml = toastHtml.replace(/🟢|🔴|⚠️/g, '');
                 toastHtml = toastHtml.replace(/【(.*?)】/g, '<b class="hl-green">【$1】</b>');
                 toastHtml = toastHtml.replace(/(-\d+\.?\d*\%|\+\d+\.?\d*\%)/g, '<b class="hl-green">$1</b>');
@@ -920,10 +953,10 @@ document.addEventListener("DOMContentLoaded", () => {
                             <i class="${trig ? 'fa-solid fa-triangle-exclamation w-check-icon active-sell' : 'fa-regular fa-circle w-check-icon inactive'}"></i>
                             <div class="w-check-body">
                                 <div class="w-check-title">
-                                    <span>${item.title}</span>
+                                    <span>${escapeHtml(item.title)}</span>
                                     <span class="w-check-status-badge ${trig ? 'active-sell' : 'inactive'}">${trig ? '已觸發 ⚠️' : '未達門檻'}</span>
                                 </div>
-                                <div class="w-check-desc">${item.desc}</div>
+                                <div class="w-check-desc">${escapeHtml(item.desc)}</div>
                             </div>
                         </div>
                     `;
@@ -939,10 +972,10 @@ document.addEventListener("DOMContentLoaded", () => {
                             <i class="${trig ? 'fa-solid fa-circle-check w-check-icon active-buy' : 'fa-regular fa-circle w-check-icon inactive'}"></i>
                             <div class="w-check-body">
                                 <div class="w-check-title">
-                                    <span>${item.title}</span>
+                                    <span>${escapeHtml(item.title)}</span>
                                     <span class="w-check-status-badge ${trig ? 'active-buy' : 'inactive'}">${trig ? '已滿足 ✅' : '未達門檻'}</span>
                                 </div>
-                                <div class="w-check-desc">${item.desc}</div>
+                                <div class="w-check-desc">${escapeHtml(item.desc)}</div>
                             </div>
                         </div>
                     `;
@@ -1038,18 +1071,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 eventsList.innerHTML = "";
                 data.events.forEach(ev => {
                     const li = document.createElement("li");
-                    li.className = `event-item ${ev.impact}`;
+                    const impactCls = ev.impact === "HIGH" ? "HIGH" : "MEDIUM";
+                    li.className = `event-item ${impactCls}`;
                     li.innerHTML = `
                         <div class="event-top">
-                            <span class="event-time"><i class="fa-regular fa-clock"></i> ${ev.time}</span>
-                            <span class="event-impact ${ev.impact}">${ev.impact === 'HIGH' ? '🔴 重大' : '🟡 中等'}</span>
+                            <span class="event-time"><i class="fa-regular fa-clock"></i> ${escapeHtml(ev.time)}</span>
+                            <span class="event-impact ${impactCls}">${impactCls === 'HIGH' ? '🔴 重大' : '🟡 中等'}</span>
                         </div>
-                        <div class="event-title">${ev.title}</div>
+                        <div class="event-title">${escapeHtml(ev.title)}</div>
                         <div class="event-vals">
-                            <span>預期: <strong>${ev.forecast}</strong></span>
-                            <span>前值: <strong>${ev.previous}</strong></span>
+                            <span>預期: <strong>${escapeHtml(ev.forecast)}</strong></span>
+                            <span>前值: <strong>${escapeHtml(ev.previous)}</strong></span>
                         </div>
-                        <div class="event-analysis">${ev.analysis}</div>
+                        <div class="event-analysis">${escapeHtml(ev.analysis)}</div>
                     `;
                     eventsList.appendChild(li);
                 });
@@ -1066,13 +1100,14 @@ document.addEventListener("DOMContentLoaded", () => {
                         const li = document.createElement("li");
                         li.className = "event-item";
                         li.style.borderLeftColor = "var(--accent-blue, #2962FF)";
+                        const safeLink = safeHttpUrl(nw.link);
                         li.innerHTML = `
                             <div class="event-top">
-                                <span class="event-time" style="color:var(--gold-primary); font-weight:600;"><i class="fa-solid fa-bolt"></i> ${nw.source || '即時快訊'}</span>
-                                <span class="event-time">${nw.pub_date ? nw.pub_date.slice(0, 16) : ''}</span>
+                                <span class="event-time" style="color:var(--gold-primary); font-weight:600;"><i class="fa-solid fa-bolt"></i> ${escapeHtml(nw.source || '即時快訊')}</span>
+                                <span class="event-time">${escapeHtml(nw.pub_date ? String(nw.pub_date).slice(0, 16) : '')}</span>
                             </div>
-                            <a href="${nw.link || '#'}" target="_blank" rel="noopener noreferrer" style="color:var(--text-primary); font-size:11px; line-height:1.4; font-weight:600; text-decoration:none; margin: 2px 0; display:block;">
-                                ${nw.title} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9px; opacity:0.6; margin-left:2px;"></i>
+                            <a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener noreferrer" style="color:var(--text-primary); font-size:11px; line-height:1.4; font-weight:600; text-decoration:none; margin: 2px 0; display:block;">
+                                ${escapeHtml(nw.title)} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9px; opacity:0.6; margin-left:2px;"></i>
                             </a>
                         `;
                         liveNewsList.appendChild(li);
@@ -1169,11 +1204,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     fetch("/api/alerts/settings", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(effectiveSettings)
+                        body: JSON.stringify(sanitizeSettingsForStorage(effectiveSettings))
                     }).catch(() => {});
                 } else {
                     try {
-                        localStorage.setItem("gold_alert_settings", JSON.stringify(serverCfg));
+                        localStorage.setItem("gold_alert_settings", JSON.stringify(sanitizeSettingsForStorage(serverCfg)));
                     } catch (e) {}
                 }
 
@@ -1284,7 +1319,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (comparisonEl) comparisonEl.value = settings.comparison || "lte";
         if (targetPriceEl && settings.target_price) targetPriceEl.value = settings.target_price;
         if (cooldownEl) cooldownEl.value = settings.cooldown_minutes || 30;
-        if (botTokenEl) botTokenEl.value = settings.bot_token || "";
+        if (botTokenEl) {
+            botTokenEl.value = "";
+            if (settings.has_bot_token) {
+                botTokenEl.placeholder = `已安全儲存 (${settings.bot_token_masked || "****"})，若不變更請留空`;
+            } else {
+                botTokenEl.placeholder = "例如: 123456789:ABCdef...";
+            }
+        }
         if (chatIdEl) chatIdEl.value = settings.chat_id || "";
 
         const quietEnabledEl = document.getElementById("alertQuietHoursEnabled");
@@ -1319,8 +1361,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const sym = h.comparison === "gte" ? "≥" : "≤";
             return `
                 <div class="alert-history-item ${cls}">
-                    <span><b>${h.timestamp}</b> 觸發: 牌價 NT$ ${Number(h.current_price).toLocaleString()} (${sym} 目標 NT$ ${Number(h.target_price).toLocaleString()})</span>
-                    <span style="color: ${h.success ? '#00E676' : '#FF5252'}; font-weight: 600;">${h.detail}</span>
+                    <span><b>${escapeHtml(h.timestamp)}</b> 觸發: 牌價 NT$ ${Number(h.current_price).toLocaleString()} (${sym} 目標 NT$ ${Number(h.target_price).toLocaleString()})</span>
+                    <span style="color: ${h.success ? '#00E676' : '#FF5252'}; font-weight: 600;">${escapeHtml(h.detail)}</span>
                 </div>
             `;
         }).join("");
@@ -1417,10 +1459,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const testResultMsg = document.getElementById("testResultMsg");
     if (btnTestTelegram) {
         btnTestTelegram.addEventListener("click", async () => {
-            const token = document.getElementById("alertBotToken")?.value?.trim();
-            const chat = document.getElementById("alertChatId")?.value?.trim();
+            const token = document.getElementById("alertBotToken")?.value?.trim() || "";
+            const chat = document.getElementById("alertChatId")?.value?.trim() || "";
+            const hasSavedToken = Boolean(currentAlertSettings && currentAlertSettings.has_bot_token);
 
-            if (!token || !chat) {
+            if ((!token && !hasSavedToken) || !chat) {
                 if (testResultMsg) {
                     testResultMsg.className = "test-result-msg error";
                     testResultMsg.textContent = "❌ 請先填寫 Telegram Bot Token 與 Chat ID！";
@@ -1484,12 +1527,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const bot_token = document.getElementById("alertBotToken")?.value?.trim() || "";
             const chat_id = document.getElementById("alertChatId")?.value?.trim() || "";
 
+            const hasSavedToken = Boolean(currentAlertSettings && currentAlertSettings.has_bot_token);
             if (enabled) {
                 if (target_price <= 0) {
                     alert("請輸入有效的買進目標價格！");
                     return;
                 }
-                if (!bot_token || !chat_id) {
+                if ((!bot_token && !hasSavedToken) || !chat_id) {
                     alert("啟用推播時，必須填寫 Telegram Bot Token 與 Chat ID！");
                     return;
                 }
@@ -1509,12 +1553,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 updated_at: Date.now()
             };
 
-            // Immediately persist in local browser storage and refresh badge
+            // Immediately persist non-secret settings in local browser storage and refresh badge
+            const safePayload = {
+                ...sanitizeSettingsForStorage(payload),
+                has_bot_token: Boolean(bot_token || hasSavedToken),
+                bot_token_masked: currentAlertSettings?.bot_token_masked || ""
+            };
             try {
-                localStorage.setItem("gold_alert_settings", JSON.stringify(payload));
+                localStorage.setItem("gold_alert_settings", JSON.stringify(safePayload));
             } catch (e) {}
-            currentAlertSettings = payload;
-            updateAlertBadgeUI(payload, window._latestFirstBankRates);
+            currentAlertSettings = safePayload;
+            updateAlertBadgeUI(safePayload, window._latestFirstBankRates);
 
             btnSaveAlert.disabled = true;
             btnSaveAlert.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 儲存中...';

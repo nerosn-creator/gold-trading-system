@@ -1,4 +1,31 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // Security helpers to prevent DOM XSS and unsafe URL schemes
+    function escapeHtml(val) {
+        return String(val ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function safeHttpUrl(url) {
+        try {
+            const parsed = new URL(String(url || ""), window.location.origin);
+            if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+                return parsed.href;
+            }
+        } catch (e) {}
+        return "#";
+    }
+
+    function sanitizeSettingsForStorage(cfg) {
+        if (!cfg || typeof cfg !== "object") return cfg;
+        const copy = { ...cfg };
+        delete copy.bot_token; // Never persist plaintext Telegram Bot Token in localStorage
+        return copy;
+    }
+
     let currentTf = "1h";
     let chartManager = null;
 
@@ -23,6 +50,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (refreshBtn) {
         refreshBtn.addEventListener("click", () => {
             loadDashboardData();
+            loadWhaleRadar();
+            loadMacroLongTerm();
         });
     }
 
@@ -145,6 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initial Data Fetching
     loadDashboardData();
     loadPaperAccount();
+    loadWhaleRadar();
     loadMacroLongTerm();
     loadDailyEvents();
     loadOptimizationStatus();
@@ -156,6 +186,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(() => {
         loadDashboardData(true);
         loadPaperAccount();
+        loadWhaleRadar();
         loadMacroLongTerm();
         loadDailyEvents();
         loadOptimizationStatus();
@@ -472,28 +503,34 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (positions.length > 0 && paperPosStatus && paperPositionBox) {
-                let htmlContent = "";
+                paperPosStatus.innerHTML = "";
                 positions.forEach((pos, idx) => {
                     const sideIsBuy = pos.side === "BUY";
                     const sideClass = sideIsBuy ? "buy" : "sell";
                     const sideText = sideIsBuy ? "多" : "空";
                     const pnlSign = pos.currentPnl >= 0 ? "+" : "";
                     const pnlClass = pos.currentPnl >= 0 ? "bullish" : "bearish";
-                    const posId = pos.id || `pos_${idx}`;
+                    const posId = String(pos.id || `pos_${idx}`);
 
-                    htmlContent += `
-                        <div class="paper-pos-item ${sideClass}">
-                            <span class="pos-badge ${sideClass}">${sideText}</span>
-                            <div class="pos-info-text">
-                                <span>@ $${pos.entry_price.toFixed(2)} (${pos.amount_oz}oz)</span>
-                                <span class="pos-pnl ${pnlClass}">${pnlSign}$${pos.currentPnl.toFixed(2)}</span>
-                            </div>
-                            <button type="button" class="pos-single-close-btn" onclick="window.closeSinglePaperPos('${posId}')" title="平掉此單">平倉</button>
+                    const item = document.createElement("div");
+                    item.className = `paper-pos-item ${sideClass}`;
+                    item.innerHTML = `
+                        <span class="pos-badge ${sideClass}">${sideText}</span>
+                        <div class="pos-info-text">
+                            <span>@ $${Number(pos.entry_price).toFixed(2)} (${Number(pos.amount_oz)}oz)</span>
+                            <span class="pos-pnl ${pnlClass}">${pnlSign}$${Number(pos.currentPnl).toFixed(2)}</span>
                         </div>
                     `;
+                    const closeBtn = document.createElement("button");
+                    closeBtn.type = "button";
+                    closeBtn.className = "pos-single-close-btn";
+                    closeBtn.title = "平掉此單";
+                    closeBtn.textContent = "平倉";
+                    closeBtn.addEventListener("click", () => window.closeSinglePaperPos(posId));
+                    item.appendChild(closeBtn);
+                    paperPosStatus.appendChild(item);
                 });
 
-                paperPosStatus.innerHTML = htmlContent;
                 paperPositionBox.className = "paper-pos-box has-pos";
                 if (paperCloseBtn) paperCloseBtn.disabled = false;
             } else if (paperPosStatus && paperPositionBox) {
@@ -805,6 +842,199 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    async function loadWhaleRadar() {
+        try {
+            const res = await fetch("/api/gold/whale-radar?symbol=XAUUSD");
+            const data = await res.json();
+            if (!data || data.status === "ERROR") return;
+
+            const decisionBox = document.getElementById("whaleDecisionBox");
+            const signalTag = document.getElementById("whaleSignalTag");
+            const headlineText = document.getElementById("whaleHeadlineText");
+            const adviceText = document.getElementById("whaleAdviceText");
+            const dateBadge = document.getElementById("whaleDateBadge");
+            const toastText = document.getElementById("whaleToastText");
+
+            // 1. Decision Box styling & texts
+            if (decisionBox) {
+                let cls = "neutral";
+                if (data.decision_type === "BUY_ALERT") cls = "buy";
+                else if (data.decision_type === "SELL_ALERT") cls = "sell";
+                decisionBox.className = `whale-decision-box ${cls}`;
+            }
+
+            if (signalTag) {
+                signalTag.textContent = data.action_badge || "分析完成";
+            }
+            if (headlineText) {
+                headlineText.textContent = data.headline || "";
+            }
+            if (adviceText) {
+                let adviceHtml = escapeHtml(data.simple_advice || "");
+                adviceHtml = adviceHtml.replace(/【(.*?)】/g, '<b class="hl-gold">【$1】</b>');
+                adviceHtml = adviceHtml.replace(/(-\d+\.?\d*\%|\+\d+\.?\d*\%)/g, '<b class="hl-green">$1</b>');
+                adviceHtml = adviceHtml.replace(/(\$4\d{3}\.?\d*)/g, '<b class="hl-gold">$1</b>');
+                adviceHtml = adviceHtml.replace(/(第一批買進|分批加碼|買進機會|逢低回購|回補黃金坑)/g, '<span class="hl-badge-green">$1</span>');
+                adviceHtml = adviceHtml.replace(/(獲利了結|分批出場|全數落袋|謹防大跌)/g, '<span class="hl-badge-red">$1</span>');
+                adviceText.innerHTML = adviceHtml;
+            }
+            if (dateBadge && data.date) {
+                dateBadge.innerHTML = `📅 <b>${escapeHtml(data.date)}</b> 判定`;
+            }
+            if (toastText) {
+                let toastHtml = escapeHtml(data.daily_alert_text || "");
+                toastHtml = toastHtml.replace(/🟢|🔴|⚠️/g, '');
+                toastHtml = toastHtml.replace(/【(.*?)】/g, '<b class="hl-green">【$1】</b>');
+                toastHtml = toastHtml.replace(/(-\d+\.?\d*\%|\+\d+\.?\d*\%)/g, '<b class="hl-green">$1</b>');
+                toastHtml = toastHtml.replace(/(\$4\d{3}\.?\d*)/g, '<b class="hl-gold">$1</b>');
+                toastText.innerHTML = toastHtml;
+            }
+
+            // 2. Metrics & Progress Bars
+            const wmGainLow = document.getElementById("wmGainLow");
+            const wmGainBar = document.getElementById("wmGainBar");
+            const wmDropHigh = document.getElementById("wmDropHigh");
+            const wmDropBar = document.getElementById("wmDropBar");
+
+            const gainPct = data.gain_from_month_low_pct || 0;
+            const dropPct = data.effective_drop_pct || data.drop_from_month_high_pct || 0;
+
+            if (wmGainLow) wmGainLow.textContent = `${gainPct >= 0 ? "+" : ""}${gainPct.toFixed(1)}%`;
+            if (wmGainBar) {
+                const barW = Math.min(100, Math.max(0, (gainPct / 20) * 100));
+                wmGainBar.style.width = `${barW}%`;
+            }
+
+            if (wmDropHigh) wmDropHigh.textContent = `${dropPct.toFixed(1)}%`;
+            if (wmDropBar) {
+                const barW = Math.min(100, Math.max(0, (Math.abs(dropPct) / 18) * 100));
+                wmDropBar.style.width = `${barW}%`;
+            }
+
+            // 3. Anchors row
+            const waBias200 = document.getElementById("waBias200");
+            const waDist50 = document.getElementById("waDist50");
+            const waFibRet = document.getElementById("waFibRet");
+            const waRsi = document.getElementById("waRsi");
+
+            if (waBias200) {
+                const b = data.bias_200sma_pct || 0;
+                waBias200.textContent = `${b >= 0 ? "+" : ""}${b.toFixed(1)}%`;
+                waBias200.style.color = b >= 15 ? "#FF4444" : (b <= -10 ? "#00E676" : "#F8FAFC");
+            }
+            if (waDist50) {
+                const d50 = data.dist_50sma_pct || 0;
+                waDist50.textContent = `${d50 >= 0 ? "+" : ""}${d50.toFixed(1)}%`;
+                waDist50.style.color = Math.abs(d50) <= 2.5 ? "#00E676" : "#F8FAFC";
+            }
+            if (waFibRet) {
+                const fib = (data.fib_retrace_pct || 0).toFixed(1);
+                waFibRet.textContent = `${fib}%`;
+                waFibRet.style.color = parseFloat(fib) >= 38.2 ? "#00E676" : "#F8FAFC";
+            }
+            if (waRsi) {
+                const r = data.rsi_14 || 50;
+                waRsi.textContent = r.toFixed(1);
+                waRsi.style.color = r >= 70 ? "#FF4444" : (r <= 40 ? "#00E676" : "#F8FAFC");
+            }
+
+            // 4. Checklists
+            const sellScoreBadge = document.getElementById("sellScoreBadge");
+            const buyScoreBadge = document.getElementById("buyScoreBadge");
+            if (sellScoreBadge) sellScoreBadge.textContent = `${data.sell_score || 0}/4`;
+            if (buyScoreBadge) buyScoreBadge.textContent = `${data.buy_score || 0}/4`;
+
+            const sellContainer = document.getElementById("sellChecklistContainer");
+            if (sellContainer && Array.isArray(data.sell_checklist)) {
+                sellContainer.innerHTML = data.sell_checklist.map(item => {
+                    const trig = item.triggered;
+                    return `
+                        <div class="w-check-item ${trig ? 'triggered sell-type' : ''}">
+                            <i class="${trig ? 'fa-solid fa-triangle-exclamation w-check-icon active-sell' : 'fa-regular fa-circle w-check-icon inactive'}"></i>
+                            <div class="w-check-body">
+                                <div class="w-check-title">
+                                    <span>${escapeHtml(item.title)}</span>
+                                    <span class="w-check-status-badge ${trig ? 'active-sell' : 'inactive'}">${trig ? '已觸發 ⚠️' : '未達門檻'}</span>
+                                </div>
+                                <div class="w-check-desc">${escapeHtml(item.desc)}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            }
+
+            const buyContainer = document.getElementById("buyChecklistContainer");
+            if (buyContainer && Array.isArray(data.buy_checklist)) {
+                buyContainer.innerHTML = data.buy_checklist.map(item => {
+                    const trig = item.triggered;
+                    return `
+                        <div class="w-check-item ${trig ? 'triggered' : ''}">
+                            <i class="${trig ? 'fa-solid fa-circle-check w-check-icon active-buy' : 'fa-regular fa-circle w-check-icon inactive'}"></i>
+                            <div class="w-check-body">
+                                <div class="w-check-title">
+                                    <span>${escapeHtml(item.title)}</span>
+                                    <span class="w-check-status-badge ${trig ? 'active-buy' : 'inactive'}">${trig ? '已滿足 ✅' : '未達門檻'}</span>
+                                </div>
+                                <div class="w-check-desc">${escapeHtml(item.desc)}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            }
+
+        } catch (e) {
+            console.error("Failed to load whale radar:", e);
+        }
+    }
+
+    // Tab Switcher for Whale Criteria
+    const tabBtnSell = document.getElementById("tabBtnSell");
+    const tabBtnBuy = document.getElementById("tabBtnBuy");
+    const sellCriteriaTab = document.getElementById("sellCriteriaTab");
+    const buyCriteriaTab = document.getElementById("buyCriteriaTab");
+
+    if (tabBtnSell && tabBtnBuy && sellCriteriaTab && buyCriteriaTab) {
+        tabBtnSell.addEventListener("click", () => {
+            tabBtnSell.classList.add("active");
+            tabBtnBuy.classList.remove("active");
+            sellCriteriaTab.classList.add("active");
+            buyCriteriaTab.classList.remove("active");
+        });
+        tabBtnBuy.addEventListener("click", () => {
+            tabBtnBuy.classList.add("active");
+            tabBtnSell.classList.remove("active");
+            buyCriteriaTab.classList.add("active");
+            sellCriteriaTab.classList.remove("active");
+        });
+    }
+
+    // Telegram manual push button
+    const btnSendWhaleTelegram = document.getElementById("btnSendWhaleTelegram");
+    if (btnSendWhaleTelegram) {
+        btnSendWhaleTelegram.addEventListener("click", async () => {
+            try {
+                btnSendWhaleTelegram.disabled = true;
+                btnSendWhaleTelegram.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 發送中...';
+                const res = await fetch("/api/gold/whale-radar/send-telegram", { method: "POST" });
+                const json = await res.json();
+                if (json.status === "SUCCESS") {
+                    btnSendWhaleTelegram.innerHTML = '<i class="fa-solid fa-check"></i> 已推播';
+                } else {
+                    alert("發送失敗: " + (json.message || "請先確認 Telegram 憑證已設定"));
+                    btnSendWhaleTelegram.innerHTML = '<i class="fa-brands fa-telegram"></i> 每日推播';
+                }
+                setTimeout(() => {
+                    btnSendWhaleTelegram.disabled = false;
+                    btnSendWhaleTelegram.innerHTML = '<i class="fa-brands fa-telegram"></i> 每日推播';
+                }, 3000);
+            } catch (err) {
+                alert("發送失敗: " + err);
+                btnSendWhaleTelegram.disabled = false;
+                btnSendWhaleTelegram.innerHTML = '<i class="fa-brands fa-telegram"></i> 每日推播';
+            }
+        });
+    }
+
     async function loadDailyEvents() {
         try {
             const res = await fetch("/api/gold/events");
@@ -841,18 +1071,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 eventsList.innerHTML = "";
                 data.events.forEach(ev => {
                     const li = document.createElement("li");
-                    li.className = `event-item ${ev.impact}`;
+                    const impactCls = ev.impact === "HIGH" ? "HIGH" : "MEDIUM";
+                    li.className = `event-item ${impactCls}`;
                     li.innerHTML = `
                         <div class="event-top">
-                            <span class="event-time"><i class="fa-regular fa-clock"></i> ${ev.time}</span>
-                            <span class="event-impact ${ev.impact}">${ev.impact === 'HIGH' ? '🔴 重大' : '🟡 中等'}</span>
+                            <span class="event-time"><i class="fa-regular fa-clock"></i> ${escapeHtml(ev.time)}</span>
+                            <span class="event-impact ${impactCls}">${impactCls === 'HIGH' ? '🔴 重大' : '🟡 中等'}</span>
                         </div>
-                        <div class="event-title">${ev.title}</div>
+                        <div class="event-title">${escapeHtml(ev.title)}</div>
                         <div class="event-vals">
-                            <span>預期: <strong>${ev.forecast}</strong></span>
-                            <span>前值: <strong>${ev.previous}</strong></span>
+                            <span>預期: <strong>${escapeHtml(ev.forecast)}</strong></span>
+                            <span>前值: <strong>${escapeHtml(ev.previous)}</strong></span>
                         </div>
-                        <div class="event-analysis">${ev.analysis}</div>
+                        <div class="event-analysis">${escapeHtml(ev.analysis)}</div>
                     `;
                     eventsList.appendChild(li);
                 });
@@ -869,13 +1100,14 @@ document.addEventListener("DOMContentLoaded", () => {
                         const li = document.createElement("li");
                         li.className = "event-item";
                         li.style.borderLeftColor = "var(--accent-blue, #2962FF)";
+                        const safeLink = safeHttpUrl(nw.link);
                         li.innerHTML = `
                             <div class="event-top">
-                                <span class="event-time" style="color:var(--gold-primary); font-weight:600;"><i class="fa-solid fa-bolt"></i> ${nw.source || '即時快訊'}</span>
-                                <span class="event-time">${nw.pub_date ? nw.pub_date.slice(0, 16) : ''}</span>
+                                <span class="event-time" style="color:var(--gold-primary); font-weight:600;"><i class="fa-solid fa-bolt"></i> ${escapeHtml(nw.source || '即時快訊')}</span>
+                                <span class="event-time">${escapeHtml(nw.pub_date ? String(nw.pub_date).slice(0, 16) : '')}</span>
                             </div>
-                            <a href="${nw.link || '#'}" target="_blank" rel="noopener noreferrer" style="color:var(--text-primary); font-size:11px; line-height:1.4; font-weight:600; text-decoration:none; margin: 2px 0; display:block;">
-                                ${nw.title} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9px; opacity:0.6; margin-left:2px;"></i>
+                            <a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener noreferrer" style="color:var(--text-primary); font-size:11px; line-height:1.4; font-weight:600; text-decoration:none; margin: 2px 0; display:block;">
+                                ${escapeHtml(nw.title)} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9px; opacity:0.6; margin-left:2px;"></i>
                             </a>
                         `;
                         liveNewsList.appendChild(li);
@@ -972,11 +1204,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     fetch("/api/alerts/settings", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(effectiveSettings)
+                        body: JSON.stringify(sanitizeSettingsForStorage(effectiveSettings))
                     }).catch(() => {});
                 } else {
                     try {
-                        localStorage.setItem("gold_alert_settings", JSON.stringify(serverCfg));
+                        localStorage.setItem("gold_alert_settings", JSON.stringify(sanitizeSettingsForStorage(serverCfg)));
                     } catch (e) {}
                 }
 
@@ -1087,7 +1319,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (comparisonEl) comparisonEl.value = settings.comparison || "lte";
         if (targetPriceEl && settings.target_price) targetPriceEl.value = settings.target_price;
         if (cooldownEl) cooldownEl.value = settings.cooldown_minutes || 30;
-        if (botTokenEl) botTokenEl.value = settings.bot_token || "";
+        if (botTokenEl) {
+            botTokenEl.value = "";
+            if (settings.has_bot_token) {
+                botTokenEl.placeholder = `已安全儲存 (${settings.bot_token_masked || "****"})，若不變更請留空`;
+            } else {
+                botTokenEl.placeholder = "例如: 123456789:ABCdef...";
+            }
+        }
         if (chatIdEl) chatIdEl.value = settings.chat_id || "";
 
         const quietEnabledEl = document.getElementById("alertQuietHoursEnabled");
@@ -1122,8 +1361,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const sym = h.comparison === "gte" ? "≥" : "≤";
             return `
                 <div class="alert-history-item ${cls}">
-                    <span><b>${h.timestamp}</b> 觸發: 牌價 NT$ ${Number(h.current_price).toLocaleString()} (${sym} 目標 NT$ ${Number(h.target_price).toLocaleString()})</span>
-                    <span style="color: ${h.success ? '#00E676' : '#FF5252'}; font-weight: 600;">${h.detail}</span>
+                    <span><b>${escapeHtml(h.timestamp)}</b> 觸發: 牌價 NT$ ${Number(h.current_price).toLocaleString()} (${sym} 目標 NT$ ${Number(h.target_price).toLocaleString()})</span>
+                    <span style="color: ${h.success ? '#00E676' : '#FF5252'}; font-weight: 600;">${escapeHtml(h.detail)}</span>
                 </div>
             `;
         }).join("");
@@ -1220,10 +1459,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const testResultMsg = document.getElementById("testResultMsg");
     if (btnTestTelegram) {
         btnTestTelegram.addEventListener("click", async () => {
-            const token = document.getElementById("alertBotToken")?.value?.trim();
-            const chat = document.getElementById("alertChatId")?.value?.trim();
+            const token = document.getElementById("alertBotToken")?.value?.trim() || "";
+            const chat = document.getElementById("alertChatId")?.value?.trim() || "";
+            const hasSavedToken = Boolean(currentAlertSettings && currentAlertSettings.has_bot_token);
 
-            if (!token || !chat) {
+            if ((!token && !hasSavedToken) || !chat) {
                 if (testResultMsg) {
                     testResultMsg.className = "test-result-msg error";
                     testResultMsg.textContent = "❌ 請先填寫 Telegram Bot Token 與 Chat ID！";
@@ -1287,12 +1527,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const bot_token = document.getElementById("alertBotToken")?.value?.trim() || "";
             const chat_id = document.getElementById("alertChatId")?.value?.trim() || "";
 
+            const hasSavedToken = Boolean(currentAlertSettings && currentAlertSettings.has_bot_token);
             if (enabled) {
                 if (target_price <= 0) {
                     alert("請輸入有效的買進目標價格！");
                     return;
                 }
-                if (!bot_token || !chat_id) {
+                if ((!bot_token && !hasSavedToken) || !chat_id) {
                     alert("啟用推播時，必須填寫 Telegram Bot Token 與 Chat ID！");
                     return;
                 }
@@ -1312,12 +1553,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 updated_at: Date.now()
             };
 
-            // Immediately persist in local browser storage and refresh badge
+            // Immediately persist non-secret settings in local browser storage and refresh badge
+            const safePayload = {
+                ...sanitizeSettingsForStorage(payload),
+                has_bot_token: Boolean(bot_token || hasSavedToken),
+                bot_token_masked: currentAlertSettings?.bot_token_masked || ""
+            };
             try {
-                localStorage.setItem("gold_alert_settings", JSON.stringify(payload));
+                localStorage.setItem("gold_alert_settings", JSON.stringify(safePayload));
             } catch (e) {}
-            currentAlertSettings = payload;
-            updateAlertBadgeUI(payload, window._latestFirstBankRates);
+            currentAlertSettings = safePayload;
+            updateAlertBadgeUI(safePayload, window._latestFirstBankRates);
 
             btnSaveAlert.disabled = true;
             btnSaveAlert.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 儲存中...';

@@ -17,8 +17,6 @@ FF_CACHE_FILE = os.path.join(CACHE_DIR, "ff_calendar_cache.json")
 NEWS_CACHE_FILE = os.path.join(CACHE_DIR, "news_cache.json")
 
 ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -193,7 +191,8 @@ def fetch_live_news() -> list:
     try:
         req = urllib.request.Request(url, headers=HEADERS)
         res = urllib.request.urlopen(req, context=ctx, timeout=6)
-        root = ET.fromstring(res.read())
+        raw_xml = res.read(2 * 1024 * 1024)  # Cap XML payload at 2MB
+        root = ET.fromstring(raw_xml)
         for item in root.findall('.//item')[:8]:
             title = item.find('title').text if item.find('title') is not None else ""
             pub_date = item.find('pubDate').text if item.find('pubDate') is not None else ""

@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import time
 import tempfile
@@ -10,6 +11,32 @@ from typing import Dict, Any, Tuple, Optional
 import pytz
 
 logger = logging.getLogger("FirstBankAlertService")
+
+TELEGRAM_BOT_TOKEN_RE = re.compile(r"^\d{6,15}:[A-Za-z0-9_-]{20,64}$")
+TELEGRAM_CHAT_ID_RE = re.compile(r"^(?:-?\d{5,20}|@[A-Za-z0-9_]{5,32})$")
+
+
+def validate_bot_token(bot_token: str) -> bool:
+    return bool(bot_token and TELEGRAM_BOT_TOKEN_RE.match(bot_token.strip()))
+
+
+def validate_chat_id(chat_id: str) -> bool:
+    return bool(chat_id and TELEGRAM_CHAT_ID_RE.match(str(chat_id).strip()))
+
+
+def mask_alert_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a copy of alert settings safe for API responses (never leaks plaintext bot_token)."""
+    safe = dict(settings)
+    raw_token = str(safe.get("bot_token", "") or "").strip()
+    safe["has_bot_token"] = bool(raw_token)
+    if len(raw_token) > 8:
+        safe["bot_token_masked"] = f"{raw_token[:4]}...{raw_token[-4:]}"
+    elif raw_token:
+        safe["bot_token_masked"] = "****"
+    else:
+        safe["bot_token_masked"] = ""
+    safe["bot_token"] = ""
+    return safe
 
 # Storage paths (compatible with local & serverless fallback)
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "alert_settings.json")
@@ -109,6 +136,14 @@ def load_alert_settings() -> Dict[str, Any]:
     if _memory_settings is not None:
         default_cfg.update(_memory_settings)
 
+    # 4. Environment variable fallback (allows deploying without alert_settings.json)
+    env_token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+    env_chat = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+    if env_token and not default_cfg.get("bot_token"):
+        default_cfg["bot_token"] = env_token
+    if env_chat and not default_cfg.get("chat_id"):
+        default_cfg["chat_id"] = env_chat
+
     return default_cfg
 
 def save_alert_settings(settings: Dict[str, Any]) -> bool:
@@ -136,14 +171,21 @@ def save_alert_settings(settings: Dict[str, Any]) -> bool:
 
 def send_telegram_message(bot_token: str, chat_id: str, message: str, parse_mode: str = "HTML") -> Tuple[bool, str]:
     """
-    Sends message via Telegram Bot API.
+    Sends message via Telegram Bot API with strict token/chat_id validation.
     """
-    if not bot_token or not chat_id:
+    token_clean = str(bot_token or "").strip()
+    chat_clean = str(chat_id or "").strip()
+    if not token_clean or not chat_clean:
         return False, "Bot Token 與 Chat ID 不能為空！"
 
-    url = f"https://api.telegram.org/bot{bot_token.strip()}/sendMessage"
+    if not validate_bot_token(token_clean):
+        return False, "Bot Token 格式無效！"
+    if not validate_chat_id(chat_clean):
+        return False, "Chat ID 格式無效！"
+
+    url = f"https://api.telegram.org/bot{token_clean}/sendMessage"
     payload = {
-        "chat_id": str(chat_id).strip(),
+        "chat_id": chat_clean,
         "text": message,
         "parse_mode": parse_mode,
         "disable_web_page_preview": False
@@ -158,8 +200,10 @@ def send_telegram_message(bot_token: str, chat_id: str, message: str, parse_mode
             err_desc = data.get("description", f"HTTP {res.status_code}")
             return False, f"Telegram API 錯誤: {err_desc}"
     except Exception as e:
-        logger.error(f"Telegram network request failed: {e}")
-        return False, f"連線異常: {str(e)}"
+        # Never leak bot_token in logs or API responses
+        safe_err = str(e).replace(token_clean, "[REDACTED]")
+        logger.error(f"Telegram network request failed: {safe_err}")
+        return False, "連線異常，請稍後再試"
 
 def send_test_telegram(bot_token: str, chat_id: str) -> Tuple[bool, str]:
     """
