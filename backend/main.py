@@ -74,8 +74,11 @@ def _check_rate_limit(bucket: str, request: Request, limit: int, window_sec: int
         _rate_limit_buckets[key] = timestamps
 
 
+DEFAULT_ALERT_SYNC_URL = "https://rethink-guacamole-curve.ngrok-free.dev"
+
+
 def _get_safe_sync_url() -> str:
-    url = os.environ.get("ALERT_SYNC_URL", "").strip().rstrip("/")
+    url = os.environ.get("ALERT_SYNC_URL", DEFAULT_ALERT_SYNC_URL).strip().rstrip("/")
     if not url:
         return ""
     parsed = urlparse(url)
@@ -409,23 +412,29 @@ async def api_save_alert_settings(request: Request):
     if "updated_at" not in data or not data.get("updated_at"):
         settings["updated_at"] = int(time.time() * 1000)
 
-    # If running on serverless (e.g. Vercel), forward the update to the persistent runner tunnel if configured
+    # If running on serverless (e.g. Vercel), forward the update to the persistent runner tunnel
     if is_serverless:
         sync_url = _get_safe_sync_url()
-        if sync_url:
-            try:
-                headers = {"ngrok-skip-browser-warning": "1"}
-                admin_key = os.environ.get("ADMIN_API_KEY", "").strip()
-                if admin_key:
-                    headers["X-Admin-Key"] = admin_key
-                requests.post(
-                    f"{sync_url}/api/alerts/settings",
-                    json=data,
-                    headers=headers,
-                    timeout=3.0
-                )
-            except Exception as e:
-                print(f"Forward to local runner error: {e}")
+        if not sync_url:
+            raise HTTPException(status_code=503, detail="雲端環境未設定本機同步網址 (ALERT_SYNC_URL)，無法同步至本機推播伺服器")
+        try:
+            headers = {"ngrok-skip-browser-warning": "1"}
+            admin_key = os.environ.get("ADMIN_API_KEY", "").strip()
+            if admin_key:
+                headers["X-Admin-Key"] = admin_key
+            fwd_res = requests.post(
+                f"{sync_url}/api/alerts/settings",
+                json=data,
+                headers=headers,
+                timeout=5.0
+            )
+            if fwd_res.status_code != 200:
+                raise HTTPException(status_code=502, detail=f"同步至本機電腦失敗 (HTTP {fwd_res.status_code})，請確認本機系統與 Ngrok 正在執行")
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"Forward to local runner error: {e}")
+            raise HTTPException(status_code=502, detail="無法連線至本機電腦同步設定，請確認本機「黃金交易系統」與 Ngrok 正在執行")
 
     alert_service.save_alert_settings(settings)
 
